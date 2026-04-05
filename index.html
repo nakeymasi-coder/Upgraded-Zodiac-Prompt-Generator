@@ -1,0 +1,1902 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zodiac Prompt Generator</title>
+    <style>
+    :root { --bg1:#090612; --bg2:#120a26; --bg3:#0a1630; --panel:rgba(12,14,28,.76); --line:rgba(167,139,250,.25); --text:#f5ecff; --muted:#cab9f5; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--text); font-family:Inter,ui-sans-serif,system-ui,sans-serif;
+      background: radial-gradient(circle at 15% 20%,rgba(34,211,238,.12),transparent 25%),
+        radial-gradient(circle at 85% 15%,rgba(244,114,182,.12),transparent 25%),
+        radial-gradient(circle at 50% 80%,rgba(139,92,246,.18),transparent 30%),
+        linear-gradient(135deg,var(--bg1),var(--bg2) 45%,var(--bg3));
+      min-height:100vh; overflow-x:hidden; }
+    .stars,.stars::before,.stars::after { content:""; position:fixed; inset:0; pointer-events:none; z-index:0; background-repeat:repeat; background-size:420px 420px; }
+    .stars { background-image:radial-gradient(2px 2px at 30px 40px,rgba(255,255,255,.95),transparent 60%),radial-gradient(1px 1px at 100px 140px,rgba(255,255,255,.75),transparent 60%),radial-gradient(1.5px 1.5px at 230px 180px,rgba(167,139,250,.9),transparent 60%),radial-gradient(1.5px 1.5px at 340px 60px,rgba(34,211,238,.9),transparent 60%),radial-gradient(1px 1px at 390px 290px,rgba(255,255,255,.9),transparent 60%); animation:drift1 90s linear infinite; opacity:.7; }
+    .stars::before { background-image:radial-gradient(2px 2px at 80px 90px,rgba(255,255,255,.8),transparent 60%),radial-gradient(1px 1px at 150px 250px,rgba(255,255,255,.75),transparent 60%),radial-gradient(1.5px 1.5px at 300px 200px,rgba(244,114,182,.8),transparent 60%),radial-gradient(1px 1px at 360px 120px,rgba(255,255,255,.65),transparent 60%); animation:drift2 130s linear infinite; opacity:.45; }
+    .stars::after { background-image:radial-gradient(1px 1px at 40px 300px,rgba(255,255,255,.75),transparent 60%),radial-gradient(1.5px 1.5px at 210px 60px,rgba(167,139,250,.75),transparent 60%),radial-gradient(1px 1px at 330px 310px,rgba(34,211,238,.8),transparent 60%),radial-gradient(2px 2px at 390px 180px,rgba(255,255,255,.75),transparent 60%); animation:pulse 18s ease-in-out infinite; opacity:.35; }
+    @keyframes drift1{from{transform:translate3d(0,0,0)}to{transform:translate3d(-120px,-180px,0)}}
+    @keyframes drift2{from{transform:translate3d(0,0,0)}to{transform:translate3d(160px,-120px,0)}}
+    @keyframes pulse{0%,100%{opacity:.2}50%{opacity:.45}}
+    .wrap{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:24px;}
+    .glass{background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(14px);box-shadow:0 10px 40px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.04);border-radius:24px;}
+    .hero{padding:24px;} .section{padding:18px;}
+    .label{display:block;margin-bottom:8px;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#dccfff;}
+    .muted{color:var(--muted);}
+    .field,.prompt{width:100%;border-radius:16px;border:1px solid rgba(167,139,250,.28);background:rgba(8,12,27,.92);color:var(--text);padding:12px 14px;}
+    .field:focus,.prompt:focus{outline:none;border-color:rgba(167,139,250,.6);box-shadow:0 0 0 4px rgba(139,92,246,.12);}
+    select[multiple].field{min-height:146px;} textarea.field{min-height:82px;resize:vertical;}
+    .prompt{min-height:260px;resize:vertical;line-height:1.6;font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:rgba(6,10,24,.96);}
+    .btn{border:1px solid rgba(167,139,250,.28);border-radius:999px;padding:11px 16px;color:#f5f3ff;background:rgba(139,92,246,.12);transition:.2s ease;font-weight:600;cursor:pointer;}
+    .btn:hover{transform:translateY(-1px);background:rgba(139,92,246,.2);}
+    .btn.primary{background:linear-gradient(135deg,rgba(139,92,246,.95),rgba(34,211,238,.85));border-color:transparent;}
+    .chip{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:8px 12px;background:rgba(139,92,246,.12);border:1px solid rgba(167,139,250,.22);font-size:12px;color:#efe9ff;}
+    .lock.active{background:rgba(52,211,153,.18);border-color:rgba(52,211,153,.5);color:#d1fae5;}
+    .grid-main{display:grid;grid-template-columns:1.35fr .95fr;gap:24px;}
+    .grid-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}
+    .grid-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
+    .field-card{border-radius:22px;border:1px solid rgba(167,139,250,.15);background:rgba(0,0,0,.16);padding:16px;}
+    .row{display:flex;gap:12px;flex-wrap:wrap;}
+    .between{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+    .stack{display:grid;gap:24px;}
+    .tiny{font-size:11px;color:#c8bdf0;line-height:1.45;}
+    .footer{color:#d9d0f5;text-align:center;padding:30px 16px 50px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;}
+    .hidden{display:none!important;}
+    /* ── ANIMATIONS ── */
+    @keyframes fadeInUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes titlePulse{0%,100%{text-shadow:0 0 20px rgba(139,92,246,.6),0 0 40px rgba(34,211,238,.3)}50%{text-shadow:0 0 40px rgba(139,92,246,1),0 0 80px rgba(34,211,238,.6),0 0 120px rgba(244,114,182,.4)}}
+    @keyframes sparklePop{0%{opacity:0;transform:scale(0) rotate(0deg)}40%{opacity:1;transform:scale(1.2) rotate(180deg)}100%{opacity:0;transform:scale(0) rotate(360deg)}}
+    @keyframes sparkleFloat{0%{transform:translateY(0) translateX(0);opacity:0}10%{opacity:1}90%{opacity:.6}100%{transform:translateY(-120px) translateX(var(--sx,20px));opacity:0}}
+
+    /* fade-in on load */
+    .glass{animation:fadeInUp .6s ease both;}
+    .glass:nth-child(1){animation-delay:.05s}
+    .glass:nth-child(2){animation-delay:.12s}
+    .glass:nth-child(3){animation-delay:.18s}
+    .glass:nth-child(4){animation-delay:.24s}
+    .glass:nth-child(5){animation-delay:.3s}
+
+    /* title pulse */
+    #main-hero-title{animation:titlePulse 3s ease-in-out infinite;}
+
+    /* button hover glow */
+    .btn{transition:.22s ease;position:relative;}
+    .btn:hover{transform:translateY(-2px);box-shadow:0 0 18px rgba(139,92,246,.55),0 0 32px rgba(34,211,238,.25);}
+    .btn.primary:hover{box-shadow:0 0 24px rgba(139,92,246,.8),0 0 48px rgba(34,211,238,.4);}
+
+    /* card hover glow */
+    .field-card{transition:border-color .22s, box-shadow .22s;}
+    .field-card:hover{border-color:rgba(167,139,250,.45);box-shadow:0 0 20px rgba(139,92,246,.2);}
+    .glass.section:hover{box-shadow:0 10px 40px rgba(0,0,0,.35),0 0 30px rgba(139,92,246,.12),inset 0 1px 0 rgba(255,255,255,.04);}
+
+    /* sparkle canvas */
+    #sparkleCanvas{position:fixed;inset:0;pointer-events:none;z-index:2;}
+    .art-section-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+    .art-badge{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(135deg,rgba(245,158,11,.4),rgba(139,92,246,.4));border:1px solid rgba(245,158,11,.35);border-radius:999px;padding:4px 12px;color:#fde68a;}
+    .art-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+    @media(max-width:900px){.art-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:600px){.art-grid{grid-template-columns:1fr}}
+    /* Toggle */
+    .toggle-wrap{display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:18px;border:1px solid rgba(167,139,250,.22);background:rgba(0,0,0,.18);margin-bottom:16px;}
+    .toggle-track{position:relative;width:48px;height:26px;border-radius:999px;background:rgba(139,92,246,.18);border:1px solid rgba(167,139,250,.35);cursor:pointer;transition:background .25s;flex-shrink:0;}
+    .toggle-track.on{background:linear-gradient(135deg,rgba(139,92,246,.9),rgba(34,211,238,.8));border-color:transparent;}
+    .toggle-thumb{position:absolute;top:4px;left:4px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .25s;pointer-events:none;}
+    .toggle-track.on .toggle-thumb{transform:translateX(22px);}
+    .toggle-label{font-size:13px;font-weight:700;color:#dccfff;} .toggle-sub{font-size:11px;color:#cab9f5;margin-top:2px;}
+    .char-badge{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:linear-gradient(135deg,rgba(79,70,229,.5),rgba(245,158,11,.4));border:1px solid rgba(245,158,11,.4);border-radius:999px;padding:4px 10px;color:#fde68a;}
+    /* Char body slide */
+    #charBody{overflow:hidden;transition:opacity .25s;}
+    #charBody.off{opacity:.3;pointer-events:none;max-height:0;}
+    #charBody.on{opacity:1;pointer-events:all;max-height:9999px;}
+    /* Auto trait */
+    .auto-trait{display:block;font-size:11px;color:#c4b5fd;background:rgba(139,92,246,.18);border:1px solid rgba(167,139,250,.25);border-radius:8px;padding:6px 10px;line-height:1.4;margin-top:4px;}
+    /* Copy flash */
+    .flash{font-size:11px;color:#34d399;font-weight:700;opacity:0;transition:opacity .3s;margin-left:4px;}
+    .flash.show{opacity:1;}
+
+    /* announcement marquee */
+    .announcement-bar{margin-top:14px;overflow:hidden;border-radius:999px;border:1px solid rgba(167,139,250,.28);background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(139,92,246,.12));box-shadow:inset 0 1px 0 rgba(255,255,255,.05);}
+    .announcement-track{display:flex;align-items:center;gap:0;min-width:max-content;padding:10px 0;will-change:transform;animation:announcementScroll 22s linear infinite;}
+    .announcement-text{display:inline-flex;align-items:center;white-space:nowrap;padding-right:48px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#f8f2ff;}
+    @keyframes announcementScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+
+    /* Suno Suite */
+    .suno-grid{display:grid;gap:14px;}
+    .suno-chip-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:8px;}
+    .suno-chip{border:1px solid rgba(167,139,250,.24);background:rgba(255,255,255,.04);color:var(--text);border-radius:999px;padding:7px 10px;font-size:11px;line-height:1.1;cursor:pointer;transition:.2s ease;text-align:center;user-select:none;}
+    .suno-chip:hover{border-color:rgba(245,158,11,.45);transform:translateY(-1px);}
+    .suno-chip.active{background:rgba(245,158,11,.14);border-color:rgba(245,158,11,.55);color:#fde68a;box-shadow:0 0 0 1px rgba(245,158,11,.15) inset;}
+    .suno-range-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+    .suno-range-card{border-radius:16px;border:1px solid rgba(167,139,250,.16);background:rgba(0,0,0,.16);padding:12px;}
+    .suno-range-card input[type="range"]{width:100%;}
+    .suno-range-label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#dccfff;margin-bottom:8px;}
+    .suno-range-value{color:#fde68a;}
+    @media(max-width:760px){.suno-range-grid{grid-template-columns:1fr;}}
+    @media(max-width:1100px){.grid-main{grid-template-columns:1fr}.grid-presets{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:760px){.wrap{padding:14px}.grid-fields,.grid-presets{grid-template-columns:1fr}}
+
+    /* Side scroll buttons */
+    .side-scroll-nav{position:fixed;right:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px;z-index:30;}
+    .side-scroll-btn{width:48px;height:48px;border-radius:999px;border:1px solid rgba(167,139,250,.35);background:linear-gradient(135deg,rgba(139,92,246,.22),rgba(34,211,238,.18));color:#f5ecff;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(10px);box-shadow:0 0 18px rgba(139,92,246,.35),0 0 30px rgba(34,211,238,.14),inset 0 1px 0 rgba(255,255,255,.06);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;}
+    .side-scroll-btn:hover{transform:translateY(-2px);border-color:rgba(167,139,250,.65);box-shadow:0 0 24px rgba(139,92,246,.55),0 0 44px rgba(34,211,238,.2),inset 0 1px 0 rgba(255,255,255,.1);}
+    .side-scroll-btn:focus{outline:none;box-shadow:0 0 0 4px rgba(139,92,246,.14),0 0 24px rgba(139,92,246,.55);}
+    .side-scroll-btn svg{width:20px;height:20px;fill:currentColor;}
+    @media(max-width:760px){.side-scroll-nav{right:10px;gap:10px;}.side-scroll-btn{width:42px;height:42px;}}
+  </style>
+</head>
+<body>
+<div class="stars"></div>
+<canvas id="sparkleCanvas"></canvas>
+<div class="side-scroll-nav" aria-label="Page scroll controls">
+  <button class="side-scroll-btn" id="scrollUpBtn" type="button" aria-label="Scroll to top" title="Scroll to top">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7.4l-7.2 7.2 1.4 1.4L12 10.2l5.8 5.8 1.4-1.4z"/></svg>
+  </button>
+  <button class="side-scroll-btn" id="scrollDownBtn" type="button" aria-label="Scroll to bottom" title="Scroll to bottom">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16.6l7.2-7.2-1.4-1.4L12 13.8 6.2 8 4.8 9.4z"/></svg>
+  </button>
+</div>
+<div class="wrap">
+
+  <!-- HERO -->
+  <section class="glass hero">
+    <div class="between" style="align-items:flex-start;flex-wrap:wrap;">
+      <div>
+        <div class="chip" style="margin-bottom:12px;">Celestial · Luxury · Photo + Video</div>
+        <h1 id="main-hero-title" style="margin:0;font-size:clamp(2rem,4vw,3.5rem);font-weight:800;line-height:1.05;">Zodiac Prompt Generator</h1>
+        <p id="generator-title" class="muted" style="margin:6px 0 0;font-size:1rem;font-weight:600;letter-spacing:.04em;"></p>
+        <p class="muted" style="max-width:880px;margin:12px 0 0;">Build premium zodiac photo and video prompts with full scene control, character styling, and celestial aesthetics.</p>
+        <div class="announcement-bar" aria-label="Announcement bar">
+          <div class="announcement-track">
+            <span class="announcement-text">✨ Luxury Generator Bundle • Instant Download • Premium Images •</span>
+            <span class="announcement-text" aria-hidden="true">✨ Luxury Generator Bundle • Instant Download • Premium Images •</span>
+          </div>
+        </div>
+        <div class="row" style="margin-top:14px;">
+          <button class="btn" id="randomizeBtn" type="button">Randomizer</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div style="height:24px"></div>  <div class="grid-main">
+    <div class="stack">
+
+      <!-- PRESETS -->
+      <section class="glass section">
+        <div class="between" style="margin-bottom:14px;">
+          <h2 style="margin:0;font-size:1.25rem;font-weight:700;">Presets</h2>
+          <div class="tiny">Click to apply a styled starting point.</div>
+        </div>
+        <div id="presetGrid" class="grid-presets"></div>
+      </section>
+
+
+      <!-- MAIN BUILDER -->
+      <section class="glass section">
+        <div class="between" style="margin-bottom:14px;align-items:flex-start;">
+          <div>
+            <h2 style="margin:0;font-size:1.25rem;font-weight:700;">Main Builder</h2>
+            <div class="tiny">Zodiac styling, camera, lighting, shadow, background, and effects.</div>
+          </div>
+          <div class="chip">Locks stay on during randomize</div>
+        </div>
+        <div id="builderGrid" class="grid-fields"></div>
+      </section>
+
+
+
+
+  <!-- ══ ART DIRECTION SECTION ══ -->
+  <section class="glass section" style="margin-bottom:24px;">
+    <div class="art-section-header">
+      <h2 style="margin:0;font-size:1.25rem;font-weight:700;">Art Direction</h2>
+      <span class="art-badge">New</span>
+      <div class="tiny" style="margin-left:auto;">Multi-select any category · Bakes into photo and video prompts automatically</div>
+    </div>
+    <div class="art-grid">
+
+      <!-- Art Style -->
+      <div class="field-card">
+        <span class="label">Art Style</span>
+        <select id="artStyle" class="field" multiple size="8" onchange="generateOutputs()">
+          <option value="none">None</option>
+          <option value="dark neon celestial — deep black background, glowing purple, gold and hot pink neon light, cosmic glow, luxury fantasy editorial">Dark Neon Celestial</option>
+          <option value="hot pink graffiti drip — bold 3D graffiti-style lettering, dripping paint, lion or zodiac animal sitting on text, pink monochrome, street art energy">Hot Pink Graffiti Drip</option>
+          <option value="bubblegum airbrush drip — magenta and fuchsia airbrush gradient, sparkle starbursts, heart accents, glossy drip lettering, clean white background, girly pop energy">Bubblegum Airbrush Drip</option>
+          <option value="dark neon street art — black background, electric purple, cyan and blue graffiti glow, bold brushstroke lettering, neon-lit celestial figure, urban luxury">Dark Neon Street Art</option>
+          <option value="lip art fantasy — macro close-up of glossy lips, entire zodiac scene painted inside the lips, glitter and sparkle, ultra-realistic skin texture, cinematic beauty editorial">Lip Art Fantasy</option>
+          <option value="3D jeweled royal — chrome and sapphire 3D dimensional letters, royal crowns on letters, diamond gem centerpiece, gold trim, dark grey luxury background, regal authority">3D Jeweled Royal</option>
+          <option value="celestial watercolor — soft dreamy watercolor washes, delicate ink line work, pastel celestial tones, whimsical and ethereal">Celestial Watercolor</option>
+          <option value="dark gothic luxury — deep black and crimson, ornate baroque details, gothic arches, candle glow, dramatic editorial darkness">Dark Gothic Luxury</option>
+          <option value="holographic chrome — iridescent chrome surfaces, rainbow light refraction, liquid metal texture, futuristic luxury editorial">Holographic Chrome</option>
+          <option value="vintage tattoo flash — traditional tattoo illustration style, bold black outlines, limited jewel-tone palette, classic flash sheet aesthetic">Vintage Tattoo Flash</option>
+          <option value="cosmic editorial luxury — fashion magazine cover energy, high-contrast cinematic photography style, celestial elements as haute couture">Cosmic Editorial Luxury</option>
+          <option value="neon retro 80s — synthwave sunset palette, hot pink and electric blue, bold retro typography, grid lines, nostalgic neon glow">Neon Retro 80s</option>
+        </select>
+      </div>
+
+      <!-- Text Treatment -->
+      <div class="field-card">
+        <span class="label">Text Treatment</span>
+        <select id="artText" class="field" multiple size="8" onchange="generateOutputs()">
+          <option value="none">None</option>
+          <option value="3D graffiti drip lettering with paint drips falling from each letter">3D Graffiti Drip</option>
+          <option value="glowing neon sign lettering with electric light halo">Glowing Neon Sign</option>
+          <option value="chrome metallic 3D letters with reflective surface">Chrome Metallic 3D</option>
+          <option value="jeweled encrusted letters with embedded diamonds and gems">Jeweled Encrusted</option>
+          <option value="airbrush gradient lettering with smooth color fade">Airbrush Gradient</option>
+          <option value="liquid gold molten lettering with dripping gold texture">Liquid Gold Molten</option>
+          <option value="bold cursive script with thick glossy shadow">Bold Cursive Gloss</option>
+          <option value="stacked gothic blackletter with ornate serifs">Gothic Blackletter</option>
+          <option value="cosmic starfield lettering with stars and nebula inside each letter">Cosmic Starfield Letters</option>
+          <option value="lip art lettering written across glossy lips surface">Lip Art Lettering</option>
+          <option value="watercolor brushstroke lettering with ink wash edges">Watercolor Brushstroke</option>
+          <option value="holographic foil lettering with rainbow shimmer">Holographic Foil</option>
+          <option value="carved stone relief lettering with shadow depth">Carved Stone Relief</option>
+          <option value="fire and flame lettering with ember sparks">Fire Flame Letters</option>
+          <option value="crystal ice lettering with frozen texture and frost cracks">Crystal Ice Letters</option>
+        </select>
+      </div>
+
+      <!-- Accent Elements -->
+      <div class="field-card">
+        <span class="label">Accent Elements</span>
+        <select id="artAccents" class="field" multiple size="8" onchange="generateOutputs()">
+          <option value="none">None</option>
+          <option value="royal crown accent on top letter or floating above sign">Royal Crown</option>
+          <option value="heart accent in matching color palette">Heart Accent</option>
+          <option value="4-point sparkle stars scattered throughout">Sparkle Stars</option>
+          <option value="paint drips falling from text and elements">Paint Drips</option>
+          <option value="diamond gem centerpiece">Diamond Gem</option>
+          <option value="sunburst rays radiating from center">Sunburst Rays</option>
+          <option value="zodiac constellation dot pattern overlay">Constellation Dots</option>
+          <option value="glitter dust particles floating in scene">Glitter Dust</option>
+          <option value="ornate floral and leaf border framing">Floral Border Frame</option>
+          <option value="celestial halo ring glowing around focal point">Celestial Halo Ring</option>
+          <option value="chain and jewel drape accent">Chain Jewel Drape</option>
+          <option value="cosmic smoke and mist swirling around elements">Cosmic Smoke Swirls</option>
+          <option value="water splash and droplet accents">Water Splash Drops</option>
+          <option value="lightning bolt energy accents">Lightning Bolt Energy</option>
+          <option value="moon phases arranged decoratively">Moon Phases</option>
+          <option value="zodiac symbol as large background watermark">Zodiac Symbol Watermark</option>
+        </select>
+      </div>
+
+      <!-- Color Mood -->
+      <div class="field-card">
+        <span class="label">Color Mood</span>
+        <select id="artColor" class="field" multiple size="8" onchange="generateOutputs()">
+          <option value="none">None</option>
+          <option value="hot pink monochrome — all shades of pink from magenta to blush">Hot Pink Monochrome</option>
+          <option value="purple and gold luxury — deep violet with 24k gold accents">Purple and Gold Luxury</option>
+          <option value="electric neon — cyan, magenta, electric blue on black">Electric Neon</option>
+          <option value="sapphire and gold royal — deep navy blue with gold trim">Sapphire and Gold Royal</option>
+          <option value="teal and chrome futuristic — icy teal with silver metallic">Teal and Chrome</option>
+          <option value="black and gold editorial — pure black with gold leaf accents">Black and Gold Editorial</option>
+          <option value="rose gold and blush — warm pinks and champagne gold">Rose Gold and Blush</option>
+          <option value="red and black dramatic — crimson, scarlet and deep black">Red and Black Dramatic</option>
+          <option value="cosmic nebula — deep space purples, blues and stardust whites">Cosmic Nebula Palette</option>
+          <option value="emerald and gold rich — deep forest green with gold">Emerald and Gold</option>
+          <option value="holographic rainbow — full spectrum iridescent shimmer">Holographic Rainbow</option>
+          <option value="icy blue and silver — glacial blue with silver chrome">Icy Blue and Silver</option>
+          <option value="sunset warm — coral, tangerine, gold and warm pink">Sunset Warm</option>
+          <option value="midnight jewel — deep midnight black with ruby, emerald and sapphire gem tones">Midnight Jewel Tones</option>
+        </select>
+      </div>
+
+      <!-- Background Style -->
+      <div class="field-card">
+        <span class="label">Background Style</span>
+        <select id="artBackground" class="field" multiple size="8" onchange="generateOutputs()">
+          <option value="none">None</option>
+          <option value="pure black background — deep flat black, all focus on subject">Pure Black</option>
+          <option value="pure white background — clean bright white, graphic design ready">Pure White</option>
+          <option value="deep space galaxy background — stars, nebula, and cosmic dust">Deep Space Galaxy</option>
+          <option value="dark gradient vignette — black edges fading to rich dark center color">Dark Gradient Vignette</option>
+          <option value="sunburst radial lines background — rays from center point">Sunburst Radial Lines</option>
+          <option value="luxury dark grey background — matte dark slate surface">Luxury Dark Grey</option>
+          <option value="watercolor wash background — soft loose painted color field">Watercolor Wash</option>
+          <option value="grunge texture background — gritty worn surface with depth">Grunge Texture</option>
+          <option value="holographic foil background — shifting rainbow metallic surface">Holographic Foil</option>
+          <option value="marble luxury background — swirling marble stone texture">Marble Luxury</option>
+          <option value="cosmic mist background — swirling colored fog and galaxy mist">Cosmic Mist</option>
+          <option value="neon grid background — retro synthwave perspective grid">Neon Grid Synthwave</option>
+          <option value="macro skin texture background — extreme close-up of skin surface">Macro Skin Texture</option>
+          <option value="transparent PNG ready — subject isolated, no background">Transparent PNG Ready</option>
+        </select>
+      </div>
+
+      <!-- Finish & Rendering -->
+      <div class="field-card">
+        <span class="label">Finish &amp; Rendering</span>
+        <select id="artFinish" class="field" multiple size="8" onchange="generateOutputs()">
+          <option value="none">None</option>
+          <option value="ultra-glossy lacquer finish — wet and reflective surface">Ultra Glossy Lacquer</option>
+          <option value="matte velvet finish — soft flat non-reflective surface">Matte Velvet</option>
+          <option value="metallic chrome finish — mirror-like metallic surface">Metallic Chrome</option>
+          <option value="glitter and sparkle finish — embedded glitter throughout">Glitter Sparkle</option>
+          <option value="airbrush smooth gradient finish — seamless color transitions">Airbrush Smooth</option>
+          <option value="glow bloom finish — soft luminous glow radiating from all elements">Glow Bloom</option>
+          <option value="hand-painted illustration finish — visible brushstroke texture">Hand-Painted Illustration</option>
+          <option value="hyper-realistic 3D render finish — photorealistic materials and lighting">Hyper-Realistic 3D Render</option>
+          <option value="sticker-ready finish — bold outlines, clean edges, print ready">Sticker Ready</option>
+          <option value="tattoo flash finish — flat ink illustration style with bold outlines">Tattoo Flash Finish</option>
+          <option value="holographic shimmer finish — color shifts with viewing angle">Holographic Shimmer</option>
+          <option value="embossed relief finish — raised dimensional surface texture">Embossed Relief</option>
+          <option value="digital painting finish — rich textured digital art surface">Digital Painting</option>
+          <option value="crystalline jewel finish — faceted gem-like surfaces throughout">Crystalline Jewel</option>
+        </select>
+      </div>
+
+    </div>
+  </section>
+
+
+      <!-- ACTION BUTTONS -->
+      <section class="glass section">
+        <div class="row">
+          <button class="btn primary" id="generateMain" type="button">Generate Prompts</button>
+          <button class="btn" id="variationBtn" type="button">3 Variations</button>
+          
+          <button class="btn" id="clearBtn" type="button">Clear All</button>
+          <button class="btn" id="saveBtn" type="button">Save Prompt</button>
+          <button class="btn" id="copyPhotoBtn" type="button">Copy Photo <span class="flash" id="flashPhoto">✓ Copied!</span></button>
+          <button class="btn" id="copyVideoBtn" type="button">Copy Video <span class="flash" id="flashVideo">✓ Copied!</span></button>
+        </div>
+      </section>
+
+      <!-- ══ CHARACTER CONTROL ══ -->
+      <section class="glass section">
+        <div class="toggle-wrap">
+          <div class="toggle-track" id="charToggle" onclick="toggleChar()">
+            <div class="toggle-thumb"></div>
+          </div>
+          <div>
+            <div class="toggle-label">Character Control</div>
+            <div class="toggle-sub">Off = zodiac-only prompt &nbsp;·&nbsp; On = add a subject to the scene</div>
+          </div>
+          <span class="char-badge">New</span>
+        </div>
+
+        <div id="charBody" class="off">
+          <div class="grid-fields">
+
+            <!-- Gender -->
+            <div class="field-card">
+              <span class="label">Gender</span>
+              <select id="charGender" class="field" onchange="onGenderChange()">
+                <option value="none">None</option>
+                <option value="woman">Woman</option>
+                <option value="man">Man</option>
+                <option value="nonbinary">Non-binary / Androgynous</option>
+              </select>
+            </div>
+
+            <!-- Ethnicity -->
+            <div class="field-card">
+              <span class="label">Ethnicity / Background</span>
+              <select id="charEthnicity" class="field" onchange="generateOutputs()">
+                <option value="none">None</option>
+                <option value="African American, deep rich brown skin tone">African American — Deep Rich Brown</option>
+                <option value="African American, medium warm brown skin tone">African American — Medium Warm Brown</option>
+                <option value="African, dark ebony skin tone">African — Dark Ebony</option>
+                <option value="Afro-Caribbean, rich chocolate brown skin tone">Afro-Caribbean — Rich Chocolate</option>
+                <option value="Afro-Latina, warm golden brown skin tone">Afro-Latina — Warm Golden Brown</option>
+                <option value="Asian American, light golden skin tone">Asian American — Light Golden</option>
+                <option value="Black British, deep brown skin tone">Black British — Deep Brown</option>
+                <option value="Brazilian, warm caramel skin tone">Brazilian — Warm Caramel</option>
+                <option value="Chinese, fair cool porcelain skin tone">Chinese — Fair Cool Porcelain</option>
+                <option value="East African, deep mahogany skin tone">East African — Deep Mahogany</option>
+                <option value="East Asian, fair luminous skin tone">East Asian — Fair Luminous</option>
+                <option value="Ethiopian, deep warm brown skin tone">Ethiopian — Deep Warm Brown</option>
+                <option value="Filipino, warm golden tan skin tone">Filipino — Warm Golden Tan</option>
+                <option value="Ghanaian, deep rich brown skin tone">Ghanaian — Deep Rich Brown</option>
+                <option value="Indian, warm medium brown skin tone">Indian — Warm Medium Brown</option>
+                <option value="Indigenous American, warm copper skin tone">Indigenous American — Warm Copper</option>
+                <option value="Japanese, fair soft skin tone">Japanese — Fair Soft</option>
+                <option value="Korean, fair dewy skin tone">Korean — Fair Dewy</option>
+                <option value="Latina, light olive skin tone">Latina — Light Olive</option>
+                <option value="Latina, warm medium brown skin tone">Latina — Warm Medium Brown</option>
+                <option value="Mediterranean, warm olive skin tone">Mediterranean — Warm Olive</option>
+                <option value="Middle Eastern, warm golden skin tone">Middle Eastern — Warm Golden</option>
+                <option value="Mixed Race, warm golden beige skin tone">Mixed Race — Warm Golden Beige</option>
+                <option value="Nigerian, deep brown skin tone">Nigerian — Deep Brown</option>
+                <option value="North African, warm tan skin tone">North African — Warm Tan</option>
+                <option value="Pacific Islander, warm brown skin tone">Pacific Islander — Warm Brown</option>
+                <option value="Persian, warm golden skin tone">Persian — Warm Golden</option>
+                <option value="Puerto Rican, warm caramel skin tone">Puerto Rican — Warm Caramel</option>
+                <option value="Senegalese, deep blue-black skin tone">Senegalese — Deep Blue-Black</option>
+                <option value="South Asian, warm brown skin tone">South Asian — Warm Brown</option>
+                <option value="Southeast Asian, warm golden brown skin tone">Southeast Asian — Warm Golden Brown</option>
+                <option value="Vietnamese, warm light golden skin tone">Vietnamese — Warm Light Golden</option>
+                <option value="West African, rich dark brown skin tone">West African — Rich Dark Brown</option>
+                <option value="White American, fair skin tone">White American — Fair</option>
+                <option value="White European, fair porcelain skin tone">White European — Fair Porcelain</option>
+                <option value="White, warm peachy skin tone">White — Warm Peachy</option>
+              </select>
+            </div>
+
+            <!-- Body Type -->
+            <div class="field-card">
+              <span class="label">Body Type</span>
+              <select id="charBodyType" class="field" onchange="generateOutputs()">
+                <option value="none">None</option>
+                <option value="slim and lean figure">Slim & Lean</option>
+                <option value="athletic and toned figure">Athletic & Toned</option>
+                <option value="curvy and voluptuous figure">Curvy & Voluptuous</option>
+                <option value="full-figured bold figure">Full-Figured & Bold</option>
+                <option value="plus-size goddess figure">Plus-Size Goddess</option>
+                <option value="petite and delicate figure">Petite & Delicate</option>
+                <option value="tall and statuesque figure">Tall & Statuesque</option>
+                <option value="muscular and powerful build">Muscular & Powerful</option>
+                <option value="broad-shouldered commanding build">Broad-Shouldered & Commanding</option>
+                <option value="lean and defined build">Lean & Defined</option>
+                <option value="stocky and strong build">Stocky & Strong</option>
+              </select>
+            </div>
+
+            <!-- Age Vibe -->
+            <div class="field-card">
+              <span class="label">Age Vibe</span>
+              <select id="charAge" class="field" onchange="generateOutputs()">
+                <option value="none">None</option>
+                <option value="early 20s, youthful and vibrant">20s — Youthful & Vibrant</option>
+                <option value="late 20s, confident and polished">Late 20s — Confident & Polished</option>
+                <option value="30s, bold and established">30s — Bold & Established</option>
+                <option value="early 40s, radiant and authoritative">Early 40s — Radiant Authority</option>
+                <option value="late 40s, powerful and refined">Late 40s — Powerful & Refined</option>
+                <option value="50s, timeless and commanding">50s — Timeless & Commanding</option>
+                <option value="60s, legendary and graceful">60s — Legendary & Graceful</option>
+                <option value="70s, regal elder energy">70s — Regal Elder Energy</option>
+              </select>
+            </div>
+
+            <!-- Hair (gender-gated, full width) -->
+            <div class="field-card" style="grid-column:1/-1;">
+              <span class="label" id="hairLabel">Hair Style</span>
+              <select id="charHair" class="field" onchange="generateOutputs()">
+                <option value="none">None</option>
+              </select>
+            </div>
+
+            <!-- Pose (gender-gated) -->
+            <div class="field-card">
+              <span class="label">Pose &amp; Body Language</span>
+              <select id="charPose" class="field" onchange="generateOutputs()">
+                <option value="none">None</option>
+              </select>
+            </div>
+
+            <!-- Makeup — hidden for men -->
+            <div class="field-card" id="makeupCard">
+              <span class="label">Makeup &amp; Beauty Look</span>
+              <select id="charMakeup" class="field" onchange="generateOutputs()">
+                <option value="none">None</option>
+                <option value="bold dramatic red lip with sharp cat-eye liner">Bold Red Lip + Cat Eye</option>
+                <option value="deep wine lip with smoky sultry eye">Deep Wine Lip + Smoky Eye</option>
+                <option value="dark chocolate lip with intense kohl liner">Dark Chocolate Lip + Kohl Liner</option>
+                <option value="nude gloss with sculpted defined brows">Nude Gloss + Sculpted Brows</option>
+                <option value="glossy berry lip with dewy skin">Glossy Berry Lip + Dewy Skin</option>
+                <option value="matte coral lip with bronzed glow">Matte Coral Lip + Bronze Glow</option>
+                <option value="ombre plum lip with heavy dramatic lashes">Ombre Plum Lip + Heavy Lashes</option>
+                <option value="gold shimmery eye with nude skin">Gold Shimmer Eye + Nude Skin</option>
+                <option value="holographic chrome eye with clear gloss">Holographic Chrome Eye</option>
+                <option value="celestial silver eye with white liner">Celestial Silver Eye + White Liner</option>
+                <option value="opal iridescent glow with soft pink lip">Opal Iridescent Glow</option>
+                <option value="lavender pastel eye with soft blush">Lavender Pastel Eye + Blush</option>
+                <option value="electric blue cut-crease with bold brow">Electric Blue Cut-Crease</option>
+                <option value="jewel-encrusted eye art with crystal accents">Jewel Eye Art + Crystals</option>
+                <option value="dramatic graphic liner art with editorial finish">Graphic Liner Art</option>
+                <option value="sun-kissed bronzer with peachy gloss">Sun-Kissed Bronzer + Peachy Gloss</option>
+                <option value="high fashion editorial monochrome look">Editorial Monochrome</option>
+                <option value="deep burgundy smoky eye with strong brow">Burgundy Smoky + Strong Brow</option>
+                <option value="natural skin glow with defined lash">Natural Skin Glow + Defined Lash</option>
+                <option value="full glam — contour, highlight, and bold lash">Full Glam — Contour + Highlight</option>
+              </select>
+            </div>
+
+            <!-- Auto Traits from Zodiac -->
+            <div class="field-card" style="grid-column:1/-1;border-color:rgba(139,92,246,.3);">
+              <span class="label" style="color:#a78bfa;">Auto Traits — Pulled from Zodiac Sign</span>
+              <div class="grid-fields" style="gap:10px;margin-top:4px;">
+                <div><div class="tiny" style="color:#a78bfa;margin-bottom:3px;">Eye Energy</div><span class="auto-trait" id="autoEye">Pick a zodiac sign above</span></div>
+                <div><div class="tiny" style="color:#a78bfa;margin-bottom:3px;">Skin Glow</div><span class="auto-trait" id="autoSkin">Pick a zodiac sign above</span></div>
+                <div><div class="tiny" style="color:#a78bfa;margin-bottom:3px;">Character Vibe</div><span class="auto-trait" id="autoVibe">Pick a zodiac sign above</span></div>
+                <div><div class="tiny" style="color:#a78bfa;margin-bottom:3px;">Energy Words</div><span class="auto-trait" id="autoEnergy">Pick a zodiac sign above</span></div>
+              </div>
+            </div>
+
+            <!-- Custom character details -->
+            <div class="field-card" style="grid-column:1/-1;">
+              <span class="label">Custom Character Details</span>
+              <textarea id="charCustom" class="field" placeholder="e.g. striking cheekbones, full lips, gold jewelry, dramatic lashes, silver rings, defined jawline..." oninput="generateOutputs()"></textarea>
+            </div>
+
+          </div>
+        </div>
+      </section>    </div>
+
+    <!-- OUTPUT COLUMN -->
+    <div id="outputArea" class="stack">
+
+      <section class="glass section">
+        <div class="between" style="margin-bottom:14px;">
+          <div>
+            <h2 style="margin:0;font-size:1.25rem;font-weight:700;">Photo Prompt Output</h2>
+            <div class="tiny">Optimized for image rendering with zodiac styling and scene detail.</div>
+          </div>
+          <button class="btn" id="copyPhotoBtn2" type="button">Copy <span class="flash" id="flashPhoto2">✓</span></button>
+        </div>
+        <textarea id="photoOutput" class="prompt" readonly></textarea>
+      </section>
+
+      <section class="glass section">
+        <div class="between" style="margin-bottom:14px;">
+          <div>
+            <h2 style="margin:0;font-size:1.25rem;font-weight:700;">Video Script Prompt Output</h2>
+            <div class="tiny">Structured for cinematic motion, camera moves, and atmosphere.</div>
+          </div>
+          <button class="btn" id="copyVideoBtn2" type="button">Copy <span class="flash" id="flashVideo2">✓</span></button>
+        </div>
+        <textarea id="videoOutput" class="prompt" readonly></textarea>
+      </section>
+
+
+      <section class="glass section">
+        <div class="between" style="margin-bottom:14px;">
+          <div>
+            <h2 style="margin:0;font-size:1.25rem;font-weight:700;">Suno Prompt Script Output</h2>
+            <div class="tiny">Build a jingle, 30-second song, or 1-minute song with editable genre/style control and copy-ready output.</div>
+          </div>
+          <button class="btn" id="copySunoBtn" type="button">Copy <span class="flash" id="flashSuno">✓</span></button>
+        </div>
+        <div class="suno-grid">
+          <div class="field-card">
+            <span class="label">Genre (select multiple)</span>
+            <div class="suno-chip-row" id="sunoGenreChips">
+              <button class="suno-chip active" type="button" data-group="genre" data-value="Afrobeats">Afrobeats</button>
+              <button class="suno-chip" type="button" data-group="genre" data-value="R&B">R&amp;B</button>
+              <button class="suno-chip" type="button" data-group="genre" data-value="Pop">Pop</button>
+              <button class="suno-chip" type="button" data-group="genre" data-value="Hip-Hop">Hip-Hop</button>
+              <button class="suno-chip" type="button" data-group="genre" data-value="Trap">Trap</button>
+              <button class="suno-chip" type="button" data-group="genre" data-value="Soul">Soul</button>
+              <button class="suno-chip" type="button" data-group="genre" data-value="Gospel">Gospel</button>
+              <button class="suno-chip" type="button" data-group="genre" data-value="House">House</button>
+              <button class="suno-chip" type="button" data-group="genre" data-value="Dancehall">Dancehall</button>
+              <button class="suno-chip" type="button" data-group="genre" data-value="Reggaeton">Reggaeton</button>
+              <button class="suno-chip" type="button" data-group="genre" data-value="Synthwave">Synthwave</button>
+              <button class="suno-chip" type="button" data-group="genre" data-value="Country">Country</button>
+            </div>
+            <div style="height:10px"></div>
+            <span class="label">Custom Genre Notes</span>
+            <input id="sunoCustomGenre" class="field" type="text" placeholder="Example: dreamy summer pop, cinematic trap soul, retro synth gospel" />
+          </div>
+
+          <div class="field-card">
+            <span class="label">Style Influence (select multiple)</span>
+            <div class="suno-chip-row" id="sunoStyleChips">
+              <button class="suno-chip active" type="button" data-group="style" data-value="Beyonce-inspired confidence">Beyoncé</button>
+              <button class="suno-chip" type="button" data-group="style" data-value="Rihanna-inspired cool">Rihanna</button>
+              <button class="suno-chip" type="button" data-group="style" data-value="SZA-inspired softness">SZA</button>
+              <button class="suno-chip" type="button" data-group="style" data-value="Jazmine Sullivan-inspired power">Jazmine</button>
+              <button class="suno-chip" type="button" data-group="style" data-value="The Weeknd-inspired atmosphere">The Weeknd</button>
+              <button class="suno-chip" type="button" data-group="style" data-value="Doja Cat-inspired bounce">Doja Cat</button>
+              <button class="suno-chip" type="button" data-group="style" data-value="Megan Thee Stallion-inspired attitude">Megan</button>
+              <button class="suno-chip" type="button" data-group="style" data-value="Frank Ocean-inspired mood">Frank Ocean</button>
+              <button class="suno-chip" type="button" data-group="style" data-value="Janelle Monáe-inspired futurism">Janelle</button>
+              <button class="suno-chip" type="button" data-group="style" data-value="Bruno Mars-inspired replay value">Bruno Mars</button>
+              <button class="suno-chip" type="button" data-group="style" data-value="Summer Walker-inspired intimacy">Summer Walker</button>
+              <button class="suno-chip" type="button" data-group="style" data-value="Billie Eilish-inspired whispery tension">Billie</button>
+            </div>
+            <div style="height:10px"></div>
+            <span class="label">Custom Style Notes</span>
+            <input id="sunoCustomStyle" class="field" type="text" placeholder="Example: chant-style hook, airy female lead, deep cinematic ad-libs" />
+          </div>
+
+          <div class="suno-range-grid">
+            <div class="suno-range-card">
+              <div class="suno-range-label"><span>Weirdness</span><span class="suno-range-value" id="sunoWeirdnessValue">15%</span></div>
+              <input id="sunoWeirdness" type="range" min="0" max="100" step="1" value="15" />
+            </div>
+            <div class="suno-range-card">
+              <div class="suno-range-label"><span>Style Influence</span><span class="suno-range-value" id="sunoStyleValue">90%</span></div>
+              <input id="sunoStyleInfluence" type="range" min="0" max="100" step="1" value="90" />
+            </div>
+            <div class="suno-range-card">
+              <div class="suno-range-label"><span>Audio Influence</span><span class="suno-range-value" id="sunoAudioValue">40%</span></div>
+              <input id="sunoAudioInfluence" type="range" min="0" max="100" step="1" value="40" />
+            </div>
+          </div>
+
+          <textarea id="sunoOutput" class="prompt" readonly></textarea>
+        </div>
+      </section>
+
+      <section class="glass section">
+        <div class="between" style="margin-bottom:14px;">
+          <div>
+            <h2 style="margin:0;font-size:1.25rem;font-weight:700;">Variation Output</h2>
+            <div class="tiny">Same zodiac aesthetic, different camera and lighting direction.</div>
+          </div>
+          <button class="btn" id="copyVariationsBtn" type="button">Copy <span class="flash" id="flashVar">✓</span></button>
+        </div>
+        <textarea id="variationOutput" class="prompt" readonly></textarea>
+      </section>
+
+
+      <section class="glass section">
+        <div class="between" style="margin-bottom:14px;">
+          <div>
+            <h2 style="margin:0;font-size:1.25rem;font-weight:700;">Marketing Suite Output</h2>
+            <div class="tiny">Captions, hashtags, SEO, CTAs, email, Pinterest, TikTok, Facebook, Instagram, YouTube, and ad copy.</div>
+          </div>
+          <button class="btn" id="copyMarketingBtn" type="button">Copy <span class="flash" id="flashMarketing">✓</span></button>
+        </div>
+        <textarea id="marketingOutput" class="prompt" readonly></textarea>
+      </section>
+
+      <section class="glass section">
+        <details>
+          <summary class="between" style="cursor:pointer;list-style:none;">
+            <div>
+              <h2 style="margin:0;font-size:1.25rem;font-weight:700;">Prompt History</h2>
+              <div class="tiny">Collapsible saved generations.</div>
+            </div>
+            <span class="chip">Open / Close</span>
+          </summary>
+          <div style="padding-top:16px;" id="historyList"></div>
+        </details>
+      </section>
+
+    </div>
+  </div>
+
+  <div class="footer">All rights reserved by GlamorousGrammyGlowUp</div>
+</div>
+
+<script>
+/* ── ZODIAC DATA ── */
+const zodiacData = {
+  aries:       {name:'Aries',       keywords:'passion, courage, bold momentum, flame-born confidence',       eye:'Blazing intense fire stare',        skin:'Sun-kissed warm bronze glow',      vibe:'fierce and unstoppable, flame-born warrior',  energy:'passionate, courageous, dominant'},
+  taurus:      {name:'Taurus',      keywords:'luxury, devotion, grounded beauty, rich abundance',            eye:'Deep steady magnetic gaze',          skin:'Dewy rich warm luminosity',         vibe:'luxurious, sensual, grounded queen',           energy:'abundant, devoted, magnetic'},
+  gemini:      {name:'Gemini',      keywords:'duality, curiosity, quick wit, layered expression',            eye:'Quick electric dual-energy sparkle',  skin:'Luminous airy shimmer',             vibe:'playful, electric, dual-natured spirit',       energy:'witty, curious, multidimensional'},
+  cancer:      {name:'Cancer',      keywords:'intuition, tenderness, moonlit emotion, dreamy care',          eye:'Deep soulful moonlit emotion',        skin:'Ethereal porcelain soft glow',      vibe:'dreamy, tender, moonlit oracle',               energy:'intuitive, emotional, nurturing'},
+  leo:         {name:'Leo',         keywords:'radiance, drama, regal power, magnetic spotlight',             eye:'Fierce golden spotlight gaze',        skin:'Golden sun-drenched radiance',      vibe:'regal, magnetic, solar royalty',               energy:'radiant, dramatic, commanding'},
+  virgo:       {name:'Virgo',       keywords:'precision, grace, polished structure, refined intelligence',   eye:'Sharp piercing intelligent focus',    skin:'Porcelain flawless cool clarity',   vibe:'precise, refined, crystalline grace',          energy:'composed, intelligent, polished'},
+  libra:       {name:'Libra',       keywords:'balance, romance, visual harmony, elegant poise',              eye:'Soft romantic alluring depth',        skin:'Rosé soft luminous glow',           vibe:'elegant, charming, harmonious beauty',         energy:'balanced, romantic, graceful'},
+  scorpio:     {name:'Scorpio',     keywords:'mystery, transformation, intensity, hypnotic magnetism',       eye:'Hypnotic piercing dark intensity',    skin:'Deep rich mysterious warmth',       vibe:'intense, transformative, dark power',          energy:'magnetic, secretive, powerful'},
+  sagittarius: {name:'Sagittarius', keywords:'freedom, exploration, expansion, celestial adventure',         eye:'Wild adventurous fiery spark',        skin:'Sun-kissed earthy adventure glow',  vibe:'free-spirited, bold, horizon-chaser',          energy:'expansive, daring, joyful'},
+  capricorn:   {name:'Capricorn',   keywords:'ambition, legacy, authority, timeless discipline',             eye:'Steely cool determined authority',    skin:'Cool marble timeless clarity',      vibe:'authority, legacy, timeless power',            energy:'ambitious, disciplined, commanding'},
+  aquarius:    {name:'Aquarius',    keywords:'innovation, originality, future vision, electric intelligence', eye:'Electric visionary cosmic gaze',      skin:'Iridescent electric shimmer',       vibe:'futuristic, visionary, electric soul',         energy:'innovative, original, enlightened'},
+  pisces:      {name:'Pisces',      keywords:'fantasy, softness, spirit, fluid imagination',                 eye:'Deep dreamy ocean soul gaze',         skin:'Translucent dreamy luminance',      vibe:'ethereal, spiritual, soft mystic',             energy:'dreamy, fluid, transcendent'}
+};
+
+/* ── HAIR LISTS ── */
+let femaleHair = [
+  'None',
+  'Long bone-straight sleek hair','Long flowing beach waves','Long voluminous spiral curls',
+  'Long loose romantic soft waves','Long kinky coils — natural full texture','Long box braids',
+  'Long goddess locs','Long faux locs with gold cuffs','Long Senegalese twists',
+  'Long jumbo passion twists','Waist-length sisterlocs','Long straight hair with blunt bangs',
+  'Long barrel-curled glamour waves','Long feathered 70s-inspired layers',
+  'Mid-length layered shag cut','Mid-length curtain bangs with waves',
+  'Mid-length bouncy blowout','Mid-length chunky box braids',
+  'Mid-length Marley twists','Mid-length flat twist updo',
+  'Short sleek pixie cut','Short tapered natural afro',
+  'Short TWA — teeny weeny afro','Short stacked bob with waves',
+  'Short asymmetrical bob','Short finger waves slicked back',
+  'Big voluminous afro halo','High puff ponytail',
+  'Protective low bun with laid edges','Crown braid updo',
+  'Knotless braids in high bun','Half-up half-down with curls',
+  'Blown-out natural puff with volume','Bantu knots out',
+  'Feed-in cornrows to the back','Space buns with coils',
+  'Spinning with fabric flowing outward'
+];
+
+let maleHair = [
+  'None',
+  'Clean fade with short natural coils on top','Low fade with 360 waves','High top fade',
+  'Tape up with sharp line','Mid fade with curly top','Skin fade with two-strand twists on top',
+  'Shaped afro — defined edges','Short twist out natural','Cornrows straight to the back',
+  'Cornrows with fade sides','Short box braids','Medium box braids pulled back',
+  'Long box braids loose','Dreadlocks — short starter locs','Medium dreadlocks loose',
+  'Long dreadlocks with gold cuffs','Loc mohawk styled up','Short side part slick',
+  'Textured crop with fade','Curly undercut','Caesar cut with waves',
+  'Buzz cut clean','Shaved head — bald','Bald with full beard',
+  'Temp fade with sharp part','Slicked-back long hair','Long natural hair loose',
+  'Man bun high','Low man bun with slick edges','Short locs with bun',
+  'Braided mohawk','Viking braids back','Kinky twist out medium length',
+  'Short afro with beard','Low taper clean cut','Textured pompadour fade',
+  'Curly top with skin fade','Wavy medium length — surf style'
+];
+
+let nonbinaryHair = [
+  'None',
+  'Fluid long waves','Big natural afro halo','Long box braids',
+  'Short tapered fade','Loc mohawk','Slicked-back mid-length hair',
+  'Short textured crop','Long straight with bangs','Twisted updo',
+  'Shaved sides with long top','Mid-length natural coils',
+  'Cornrows to the back','Half-up half-down','Wavy undercut',
+  'Short asymmetrical cut','Long dreadlocs loose','Space buns',
+  'Kinky twist out','High puff ponytail'
+];
+
+/* ── POSE LISTS ── */
+let femalePoses = [
+  'None',
+  'Regal commanding stance, chin lifted, shoulders back',
+  'Seated throne pose, draped elegantly, one hand on armrest',
+  'Standing hands on hips, fierce confident energy',
+  'Over-the-shoulder glance, soft smoldering look',
+  'Arms crossed, powerful and unbothered expression',
+  'Leaning against wall, one knee bent, effortlessly poised',
+  'Full profile silhouette, chin raised with pride',
+  'Sitting cross-legged, editorial and grounded',
+  'Walking forward, fabric flowing, head held high',
+  'Crouching low, intense and focused energy',
+  'Arms raised above head, celestial and expansive',
+  'Lying down dramatically draped, goddess energy',
+  'One hand cupping face, soft and introspective',
+  'Back to camera, glancing over shoulder',
+  'Standing in doorway, dramatic silhouette',
+  'Kneeling regally, hands folded in lap',
+  'Reaching one arm upward toward sky',
+  'Standing in mist, otherworldly and ethereal',
+  'Hands framing face, close portrait energy',
+  'Two-step walk with attitude, fashion-forward editorial'
+];
+
+let malePoses = [
+  'None',
+  'Standing tall arms at sides, commanding dominant presence',
+  'Arms crossed over chest, strong and powerful stance',
+  'One hand in pocket, relaxed authority',
+  'Seated forward, elbows on knees, intense focused look',
+  'Leaning against wall, one foot back, cool and composed',
+  'Looking down from above angle, brooding and powerful',
+  'Full profile, chin sharp, jaw set, regal side view',
+  'Walking toward camera, long confident stride',
+  'Standing with legs wide, grounded warrior energy',
+  'Back to camera, broad shoulders filling frame',
+  'Crouching low, hands clasped, focused and intense',
+  'One knee on ground, fist to floor, hero pose',
+  'Arms raised wide, commanding the space',
+  'Seated on throne, king energy, legs planted',
+  'Over-the-shoulder look, brooding and mysterious',
+  'Standing in doorway, silhouette against light',
+  'Leaning on surface with both hands, close to camera',
+  'Hands clasped behind back, regal and composed',
+  'Tilting head down, eyes looking up through brow',
+  'Side profile, arms folded, stoic and dignified',
+  'Head bowed slightly in quiet intensity',
+  'Full body centered symmetrical stance, editorial power'
+];
+
+let nonbinaryPoses = [
+  'None',
+  'Fluid centered stance, balanced energy',
+  'One arm extended, expressive and open',
+  'Seated cross-legged, grounded and composed',
+  'Leaning to one side, asymmetrical editorial energy',
+  'Arms raised, expansive and free',
+  'Walking forward with intention and ease',
+  'Over-the-shoulder look, quiet mystery',
+  'Standing in profile, clean silhouette',
+  'Head tilted, introspective and soft',
+  'Hands framing face, expressive portrait',
+  'Feet planted wide, strong and present',
+  'Back to camera, atmospheric editorial',
+  'Crouching low, focused and grounded'
+];
+
+/* ── SIMPLE OPTIONS ── */
+const simpleOptions = {
+  zodiac:[['aries','Aries'],['taurus','Taurus'],['gemini','Gemini'],['cancer','Cancer'],['leo','Leo'],['virgo','Virgo'],['libra','Libra'],['scorpio','Scorpio'],['sagittarius','Sagittarius'],['capricorn','Capricorn'],['aquarius','Aquarius'],['pisces','Pisces']],
+  font:[['none','None'],['art-deco','Art Deco Display'],['calligraphy','Calligraphy Elegant'],['carved','Carved Stone'],['classic','Classic Bold'],['cosmic','Cosmic Distressed'],['cursive','Flowing Cursive'],['decorative','Decorative Script'],['elegant','Elegant Serif'],['futuristic','Futuristic Geometric'],['gothic','Gothic Blackletter'],['graffiti','Graffiti Street'],['handwritten','Handwritten Brush'],['hologram','Hologram Iridescent'],['luxury','Luxury Gold Leaf'],['metallic','Metallic Chrome'],['minimal','Minimal Geometric'],['modern','Modern Sans-Serif'],['neon-glow','Neon Glow'],['shadow','Shadow 3D'],['stencil','Stencil Bold'],['tech','Tech Monospace'],['vintage','Vintage Typewriter']],
+  colors:[['none','None'],['arctic','Arctic Whites and Icy Blues'],['bronze','Bronze and Copper'],['candy','Candy Pastels'],['coral','Coral and Turquoise'],['cyberpunk','Cyberpunk Neons'],['earthy','Earthy Greens and Browns'],['fiery','Fiery Reds and Golds'],['forest','Deep Forest and Emerald'],['gold','Gold and Champagne'],['iridescent','Iridescent Rainbow'],['lavender','Lavender and Dusty Rose'],['midnight','Midnight Blues and Silvers'],['monochrome','Monochrome Grayscale'],['mystic','Mystic Purples and Blacks'],['neon','Neon Cyans and Magentas'],['ocean','Ocean Blues and Teals'],['rose','Rose Golds and Blush'],['silver','Silver and Platinum'],['sunset','Sunset Oranges and Pinks'],['tropical','Tropical Vibrants'],['vintage','Vintage Sepia and Cream'],['volcanic','Volcanic Blacks and Crimson'],['wine','Deep Wine and Maroon']],
+  symbol:[['none','None'],['3d','3D Holographic'],['constellation','Constellation Dots'],['crystalline','Crystalline Faceted'],['embossed','Embossed Carved'],['ethereal','Ethereal Translucent'],['fire','Fire and Plasma'],['frozen','Frozen Ice Crystal'],['geometric','Geometric Minimalist'],['glitch','Glitch Digital'],['glowing','Glowing Neon'],['gradient','Gradient Flowing'],['ink-splash','Ink Splash Artistic'],['line-art','Line Art Minimalist'],['liquid','Liquid Mercury'],['marble','Marble Veined'],['metallic','Metallic and Chrome'],['mystic-aura','Mystic Aura'],['ornate','Ornate and Intricate'],['paper-cut','Paper Cut Layered'],['shadow','Shadow Silhouette'],['stained-glass','Stained Glass'],['textile','Textile Woven'],['watercolor','Watercolor Artistic'],['wooden','Wooden Carved']],
+  background:[['none','None'],['abstract','Abstract Celestial'],['aurora','Aurora Borealis'],['botanical','Botanical Garden'],['cityscape','Futuristic Cityscape'],['cosmic','Cosmic Nebula'],['cosmic-dust','Cosmic Dust Storm'],['crystalline','Crystalline Formations'],['digital','Digital Grid'],['ethereal','Ethereal Clouds'],['fire-lava','Fire and Lava'],['forest-mist','Misty Forest'],['geometric-mesh','Geometric Mesh'],['marble-temple','Marble Temple'],['mirror-reflection','Mirror Reflections'],['moon-surface','Moon Surface Landscape'],['mountain-peak','Mountain Peak Summit'],['ocean-deep','Deep Ocean Abyss'],['quantum','Quantum Particles'],['spiritual-mandala','Spiritual Mandala'],['stars','Star Field Galaxy'],['storm-clouds','Storm Clouds Thunder'],['time-warp','Time Warp Vortex'],['underwater','Underwater Coral'],['void','Void and Darkness']],
+  cameraShot:[['none','None'],['aerial-view','Aerial View'],['bust-portrait','Bust Portrait'],['close-up','Close-up'],['cowboy-shot','Cowboy Shot'],['detail-macro','Detail Macro'],['dutch-angle','Dutch Angle'],['extreme-close-up','Extreme Close-up'],['eye-level','Eye Level'],['fisheye-view','Fish-eye View'],['full-body','Full Body'],['hero-low-angle','Hero Low Angle'],['high-angle','High Angle'],['mid-shot','Mid Shot'],['overhead-top-down','Overhead Top-down'],['profile-side-view','Profile Side View'],['rear-three-quarter','Rear Three-quarter'],['shoulder-up-portrait','Shoulder-up Portrait'],['symmetrical-front-view','Symmetrical Front View'],['three-quarter-portrait','Three-quarter Portrait'],['ultra-wide-shot','Ultra Wide Shot'],['waist-up','Waist-up'],['wide-establishing','Wide Establishing'],['worms-eye-view','Worms-eye View']],
+  lensType:[['none','None'],['18mm-ultra-wide','18mm Ultra Wide'],['24mm-cinematic','24mm Cinematic'],['28mm-environmental','28mm Environmental'],['35mm-natural','35mm Natural'],['50mm-portrait','50mm Portrait'],['70mm-fashion','70mm Fashion'],['85mm-beauty','85mm Beauty'],['100mm-macro','100mm Macro'],['135mm-compression','135mm Compression'],['anamorphic-lens','Anamorphic Lens'],['crystal-sharp-digital','Crystal Sharp Digital'],['dreamy-diffusion-lens','Dreamy Diffusion Lens'],['vintage-film-lens','Vintage Film Lens']],
+  lightingMode:[['none','None'],['aurora-glow','Aurora Glow'],['backlit-halo','Backlit Halo'],['bioluminescent-shimmer','Bioluminescent Shimmer'],['candlelit-gold','Candlelit Gold'],['celestial-rim-light','Celestial Rim Light'],['cloud-filtered-moonlight','Cloud-filtered Moonlight'],['colored-gel-lighting','Colored Gel Lighting'],['crisp-editorial-lighting','Crisp Editorial Lighting'],['diffused-beauty-light','Diffused Beauty Light'],['dream-haze-glow','Dream Haze Glow'],['firelit-warmth','Firelit Warmth'],['hard-spotlight','Hard Spotlight'],['high-contrast-cinematic','High Contrast Cinematic'],['iridescent-glow','Iridescent Glow'],['luminous-side-light','Luminous Side Light'],['neon-edge-light','Neon Edge Light'],['soft-frontal-light','Soft Frontal Light'],['starburst-lighting','Starburst Lighting'],['sunrise-wash','Sunrise Wash'],['twilight-ambience','Twilight Ambience'],['underlighting-drama','Underlighting Drama'],['volumetric-god-rays','Volumetric God Rays']],
+  shadowMode:[['none','None'],['clean-minimal-shadow','Clean Minimal Shadow'],['crisp-studio-shadow','Crisp Studio Shadow'],['deep-sculpted-shadows','Deep Sculpted Shadows'],['dramatic-noir-shadows','Dramatic Noir Shadows'],['dream-soft-shadow-falloff','Dream-soft Shadow Falloff'],['eclipsed-shadow-wash','Eclipsed Shadow Wash'],['feathered-shadows','Feathered Shadows'],['floating-ambient-shadow','Floating Ambient Shadow'],['layered-atmospheric-shadows','Layered Atmospheric Shadows'],['long-directional-shadows','Long Directional Shadows'],['moody-shadow-veil','Moody Shadow Veil'],['mystic-silhouette-shadow','Mystic Silhouette Shadow'],['soft-under-shadow','Soft Under-shadow'],['volumetric-shadow-depth','Volumetric Shadow Depth']]
+};
+
+const dropdownData = {
+  ornateElements:['None','Astrolabe Details','Beaded Veils','Celestial Halo','Chain Drapes','Constellation Embroidery','Cosmic Smoke','Crystal Filigree','Floating Sigils','Gem-Encrusted Armor','Glitter Dust','Gold Leaf Accents','Halo Rings','Iridescent Feathers','Jeweled Chains','Luminous Runes','Marble Pedestals','Moon Crowns','Mystic Ribbons','Opal Armor Trim','Ornate Frames','Pearl Draping','Prismatic Aura','Sacred Geometry','Silk Streamers','Solar Motifs','Starbursts','Textured Metallics','Velvet Panels','Wing Motifs']
+};
+
+const presets=[
+  {name:'Aurora Pisces Muse',values:{zodiac:'pisces',colors:['lavender','ocean'],symbol:['ethereal','constellation'],background:['underwater','ethereal'],lightingMode:['aurora-glow','dream-haze-glow'],cameraShot:['shoulder-up-portrait'],ornateElements:['Celestial Halo']}},
+  {name:'Solar Leo Sovereign',values:{zodiac:'leo',colors:['gold','fiery'],symbol:['ornate','fire'],background:['marble-temple'],lightingMode:['hard-spotlight','starburst-lighting'],cameraShot:['hero-low-angle'],ornateElements:['Solar Motifs']}},
+  {name:'Scorpio Noir Enchantress',values:{zodiac:'scorpio',colors:['wine','mystic'],symbol:['glowing','mystic-aura'],background:['void','storm-clouds'],lightingMode:['high-contrast-cinematic','underlighting-drama'],shadowMode:['dramatic-noir-shadows']}},
+  {name:'Gemini Mirror Twin',values:{zodiac:'gemini',colors:['iridescent','silver'],symbol:['gradient'],background:['mirror-reflection','geometric-mesh'],cameraShot:['symmetrical-front-view'],lensType:['35mm-natural'],ornateElements:['Sacred Geometry']}},
+  {name:'Capricorn Marble Authority',values:{zodiac:'capricorn',colors:['bronze','monochrome'],symbol:['embossed','metallic'],background:['marble-temple','mountain-peak'],lightingMode:['crisp-editorial-lighting']}},
+  {name:'Cancer Moonlit Oracle',values:{zodiac:'cancer',colors:['silver','ocean'],symbol:['ethereal','watercolor'],background:['moon-surface','ethereal'],ornateElements:['Moon Crowns'],lightingMode:['cloud-filtered-moonlight']}},
+  {name:'Aries Inferno Knight',values:{zodiac:'aries',colors:['fiery','volcanic'],symbol:['fire','metallic'],background:['fire-lava','storm-clouds'],cameraShot:['hero-low-angle']}},
+  {name:'Libra Rose Gold Harmony',values:{zodiac:'libra',colors:['rose','gold'],symbol:['ornate','stained-glass'],background:['botanical','spiritual-mandala'],lightingMode:['diffused-beauty-light']}},
+  {name:'Virgo Crystal Precision',values:{zodiac:'virgo',colors:['arctic','silver'],symbol:['crystalline','line-art'],background:['crystalline','abstract'],lightingMode:['crisp-editorial-lighting','volumetric-god-rays'],shadowMode:['clean-minimal-shadow']}},
+  {name:'Taurus Emerald Luxe',values:{zodiac:'taurus',colors:['forest','gold'],symbol:['ornate','metallic'],background:['botanical','marble-temple'],ornateElements:['Gold Leaf Accents']}},
+  {name:'Sagittarius Sky Archer',values:{zodiac:'sagittarius',colors:['sunset','gold'],symbol:['glowing','gradient'],background:['mountain-peak','stars'],cameraShot:['wide-establishing'],lightingMode:['sunrise-wash']}},
+  {name:'Aquarius Neon Futurist',values:{zodiac:'aquarius',colors:['cyberpunk','neon'],symbol:['glitch','3d'],background:['cityscape','digital'],ornateElements:['Prismatic Aura'],lightingMode:['neon-edge-light','colored-gel-lighting']}},
+  {name:'Cosmic Editorial Beauty',values:{zodiac:'pisces',colors:['silver','lavender'],symbol:['constellation','ethereal'],background:['abstract','cosmic'],cameraShot:['close-up'],lensType:['85mm-beauty'],lightingMode:['diffused-beauty-light']}},
+  {name:'Celestial Fashion Cover',values:{zodiac:'leo',colors:['gold','midnight'],symbol:['metallic','glowing'],background:['cityscape','stars'],cameraShot:['waist-up'],lensType:['70mm-fashion']}},
+  {name:'Mystic Zodiac Artifact',values:{zodiac:'scorpio',colors:['mystic','silver'],symbol:['ornate','embossed'],background:['void','spiritual-mandala'],ornateElements:['Astrolabe Details','Luminous Runes'],cameraShot:['detail-macro'],lensType:['100mm-macro']}}
+];
+
+const fields=[
+  {key:'zodiac',label:'Zodiac Sign',type:'single',source:'zodiac',custom:true},
+  {key:'font',label:'Font Style',type:'multiSimple',source:'font',custom:true},
+  {key:'colors',label:'Color Palette',type:'multiSimple',source:'colors',custom:true},
+  {key:'symbol',label:'Symbol Style',type:'multiSimple',source:'symbol',custom:true},
+  {key:'background',label:'Background Scene',type:'multiSimple',source:'background',custom:true},
+  {key:'ornateElements',label:'Ornate Elements',type:'multi',custom:true},
+  {key:'cameraShot',label:'Camera Shot',type:'multiSimple',source:'cameraShot',custom:true},
+  {key:'lensType',label:'Lens Type',type:'multiSimple',source:'lensType',custom:true},
+  {key:'lightingMode',label:'Lighting',type:'multiSimple',source:'lightingMode',custom:true},
+  {key:'shadowMode',label:'Shadow',type:'multiSimple',source:'shadowMode',custom:true},
+  {key:'effects',label:'Extra Effects',type:'text',custom:true,placeholder:'Example: stardust trails, volumetric glow, floating petals, lens bloom'},
+  {key:'customDetails',label:'Master Custom Details',type:'textarea',custom:false,placeholder:'Add extra scene notes, styling, rendering preferences, or special direction here.'}
+];
+
+const defaults={zodiac:'pisces',font:['classic'],colors:['fiery'],symbol:['glowing'],background:['abstract'],ornateElements:['Celestial Halo'],cameraShot:['three-quarter-portrait'],lensType:['85mm-beauty'],lightingMode:['diffused-beauty-light'],shadowMode:['dream-soft-shadow-falloff'],effects:'particle shimmer, cinematic glow, atmospheric depth',customDetails:''};
+
+function safeGetHistory(){ try { return JSON.parse(localStorage.getItem('zodiacPromptHistory')||'[]'); } catch(e){ return []; } }
+function safeSetHistory(history){ try { localStorage.setItem('zodiacPromptHistory', JSON.stringify(history)); } catch(e){} }
+const uiState={locks:{},history:safeGetHistory(),charOn:false};
+
+/* ── 40 OPTIONS UPGRADE ── */
+function sortPairsExceptNone(pairs){
+  const none = pairs.filter(function(p){ return String(p[0]).toLowerCase()==='none'; });
+  const rest = pairs.filter(function(p){ return String(p[0]).toLowerCase()!=='none'; })
+    .sort(function(a,b){ return String(a[1]).localeCompare(String(b[1])); });
+  return none.concat(rest);
+}
+function sortStringsExceptNone(list){
+  const unique = Array.from(new Set(list));
+  const none = unique.filter(function(v){ return String(v).toLowerCase()==='none'; });
+  const rest = unique.filter(function(v){ return String(v).toLowerCase()!=='none'; })
+    .sort(function(a,b){ return String(a).localeCompare(String(b)); });
+  return none.concat(rest);
+}
+function ensureSimpleOptionsCount(key, additions){
+  if(!simpleOptions[key])return;
+  const existing = new Map(simpleOptions[key].map(function(item){ return [item[0], item[1]]; }));
+  additions.forEach(function(item){
+    if(!existing.has(item[0])) existing.set(item[0], item[1]);
+  });
+  simpleOptions[key] = sortPairsExceptNone(Array.from(existing.entries()));
+}
+function ensureStringArrayCount(key, additions){
+  if(!dropdownData[key])return;
+  dropdownData[key] = sortStringsExceptNone(dropdownData[key].concat(additions || []));
+}
+function ensureStandaloneArrayCount(arr, additions){
+  return sortStringsExceptNone(arr.concat(additions || []));
+}
+function ensureDomSelectCount(id, additions, keepOriginalOrder){
+  const node = document.getElementById(id);
+  if(!node)return;
+  const existing = [];
+  Array.from(node.options).forEach(function(opt){
+    existing.push({value:opt.value, text:opt.textContent});
+  });
+  additions.forEach(function(item){
+    const found = existing.some(function(opt){ return opt.value===item.value || opt.text===item.text; });
+    if(!found) existing.push(item);
+  });
+  let none = existing.filter(function(opt){ return String(opt.value).toLowerCase()==='none'; });
+  let rest = existing.filter(function(opt){ return String(opt.value).toLowerCase()!=='none'; });
+  if(!keepOriginalOrder){
+    rest = rest.sort(function(a,b){ return String(a.text).localeCompare(String(b.text)); });
+  }
+  node.innerHTML = '';
+  none.concat(rest).forEach(function(opt){
+    const o = document.createElement('option');
+    o.value = opt.value;
+    o.textContent = opt.text;
+    node.appendChild(o);
+  });
+}
+function applyFortyOptionUpgrade(){
+  const simpleOptionAdditions = {
+    font: [
+      ['avant-garde','Avant-Garde Editorial'],['beveled-metal','Beveled Metal'],['celestial-serif','Celestial Serif'],['chiseled-marble','Chiseled Marble'],
+      ['cinematic-title','Cinematic Title'],['crystal-script','Crystal Script'],['diamond-outline','Diamond Outline'],['editorial-vogue','Editorial Vogue Serif'],
+      ['electric-serif','Electric Serif'],['engraved-gold','Engraved Gold'],['fantasy-ornate','Fantasy Ornate'],['fluid-metal','Fluid Metal'],
+      ['frosted-serif','Frosted Serif'],['gem-cut','Gem-Cut Display'],['glam-sans','Glam Sans'],['luxe-blackletter','Luxe Blackletter'],
+      ['mirror-serif','Mirror Serif'],['molten-title','Molten Title'],['moon-carved','Moon Carved'],['opal-script','Opal Script']
+    ],
+    colors: [
+      ['amethyst-gold','Amethyst and Gold'],['aqua-pearl','Aqua and Pearl'],['black-diamond','Black Diamond'],['blush-platinum','Blush and Platinum'],
+      ['celestial-rose','Celestial Rose'],['champagne-ivory','Champagne and Ivory'],['cobalt-gold','Cobalt and Gold'],['crimson-onyx','Crimson and Onyx'],
+      ['dusty-mauve','Dusty Mauve and Smoke'],['electric-lilac','Electric Lilac and Silver'],['ember-copper','Ember and Copper'],['fuchsia-silver','Fuchsia and Silver'],
+      ['jade-black','Jade and Black'],['midnight-amethyst','Midnight Amethyst'],['opal-pastel','Opal Pastels'],['pearl-nude','Pearl and Nude'],
+      ['ruby-gold','Ruby and Gold'],['sapphire-platinum','Sapphire and Platinum'],['smoky-quartz','Smoky Quartz'],['violet-ice','Violet and Ice']
+    ],
+    symbol: [
+      ['angelic-feathered','Angelic Feathered'],['beaded-jewel','Beaded Jewelwork'],['celestial-flame','Celestial Flame'],['chrome-spiked','Chrome Spiked'],
+      ['cosmic-smoke','Cosmic Smoke'],['crown-framed','Crown Framed'],['cut-glass','Cut Glass'],['diamond-outline','Diamond Outline'],
+      ['electric-plasma','Electric Plasma'],['floral-vine','Floral Vine'],['gemstone-inlaid','Gemstone Inlaid'],['glossy-resin','Glossy Resin'],
+      ['halo-lit','Halo Lit'],['liquid-gold','Liquid Gold'],['moonstone-carved','Moonstone Carved'],['pearl-framed','Pearl Framed'],
+      ['shadow-cutout','Shadow Cutout'],['sigil-etched','Sigil Etched'],['solar-radiant','Solar Radiant'],['velvet-embossed','Velvet Embossed']
+    ],
+    background: [
+      ['cathedral-night','Cathedral at Night'],['celestial-palace','Celestial Palace'],['crystal-cavern','Crystal Cavern'],['desert-mirage','Desert Mirage'],
+      ['dream-runway','Dream Runway'],['floating-islands','Floating Islands'],['golden-sanctuary','Golden Sanctuary'],['gothic-hall','Gothic Hall'],
+      ['ice-castle','Ice Castle'],['jewel-chamber','Jewel Chamber'],['lunar-garden','Lunar Garden'],['mirror-hall','Mirror Hall'],
+      ['nebula-temple','Nebula Temple'],['obsidian-stage','Obsidian Stage'],['opal-cloudscape','Opal Cloudscape'],['prism-tunnel','Prism Tunnel'],
+      ['royal-ballroom','Royal Ballroom'],['sacred-shrine','Sacred Shrine'],['star-palace','Star Palace'],['velvet-night-club','Velvet Night Club']
+    ],
+    cameraShot: [
+      ['beauty-tight','Beauty Tight'],['birds-eye-symmetry','Birds-eye Symmetry'],['cinematic-medium-close','Cinematic Medium Close'],['dramatic-profile-close','Dramatic Profile Close'],
+      ['editorial-cover-shot','Editorial Cover Shot'],['floating-orbit-view','Floating Orbit View'],['front-hero-portrait','Front Hero Portrait'],['grand-wide-hero','Grand Wide Hero'],
+      ['intimate-macro-detail','Intimate Macro Detail'],['mirror-shot','Mirror Shot'],['monument-low-wide','Monument Low Wide'],['off-center-editorial','Off-center Editorial'],
+      ['panoramic-environmental','Panoramic Environmental'],['power-cropped-close','Power Cropped Close'],['runway-front-view','Runway Front View'],['sculptural-side-angle','Sculptural Side Angle'],
+      ['slow-dolly-framing','Slow Dolly Framing'],['statue-center-shot','Statue Center Shot'],['tilted-fashion-frame','Tilted Fashion Frame'],['top-light-beauty-shot','Top-Light Beauty Shot']
+    ],
+    lensType: [
+      ['20mm-fashion-wide','20mm Fashion Wide'],['32mm-editorial','32mm Editorial'],['40mm-clean-portrait','40mm Clean Portrait'],['58mm-noct','58mm Noct Style'],
+      ['65mm-cinema','65mm Cinema'],['90mm-editorial-beauty','90mm Editorial Beauty'],['105mm-portrait-macro','105mm Portrait Macro'],['150mm-super-compression','150mm Super Compression'],
+      ['beauty-soft-focus','Beauty Soft Focus'],['cinema-prime','Cinema Prime'],['clean-studio-prime','Clean Studio Prime'],['crystal-macro','Crystal Macro'],
+      ['editorial-zoom-look','Editorial Zoom Look'],['fashion-prime','Fashion Prime'],['heroic-anamorphic','Heroic Anamorphic'],['high-definition-prime','High Definition Prime'],
+      ['luxury-portrait-prime','Luxury Portrait Prime'],['medium-format-look','Medium Format Look'],['sharp-glam-lens','Sharp Glam Lens'],['soft-halo-lens','Soft Halo Lens']
+    ],
+    lightingMode: [
+      ['angelic-backlight','Angelic Backlight'],['blue-hour-glow','Blue Hour Glow'],['caustic-light-pattern','Caustic Light Pattern'],['cathedral-beams','Cathedral Beams'],
+      ['chrome-reflection-light','Chrome Reflection Light'],['cosmic-eclipse-light','Cosmic Eclipse Light'],['editorial-ring-light','Editorial Ring Light'],['ember-side-light','Ember Side Light'],
+      ['ethereal-window-light','Ethereal Window Light'],['gem-reflection-glow','Gem Reflection Glow'],['glamour-top-light','Glamour Top Light'],['golden-rim-bloom','Golden Rim Bloom'],
+      ['halo-spotlight','Halo Spotlight'],['moonbeam-sheer-light','Moonbeam Sheer Light'],['opal-refraction-light','Opal Refraction Light'],['pearl-diffusion','Pearl Diffusion'],
+      ['prism-split-light','Prism Split Light'],['runway-flash','Runway Flash'],['silver-mist-light','Silver Mist Light'],['velvet-low-light','Velvet Low Light']
+    ],
+    shadowMode: [
+      ['angled-fashion-shadow','Angled Fashion Shadow'],['cathedral-depth-shadow','Cathedral Depth Shadow'],['clean-beauty-shadow','Clean Beauty Shadow'],['crystal-cast-shadow','Crystal Cast Shadow'],
+      ['diffused-floor-shadow','Diffused Floor Shadow'],['editorial-corner-shadow','Editorial Corner Shadow'],['elongated-runway-shadow','Elongated Runway Shadow'],['fog-softened-shadow','Fog-softened Shadow'],
+      ['halo-falloff-shadow','Halo Falloff Shadow'],['high-drama-shadow-sculpt','High Drama Shadow Sculpt'],['luxury-soft-contour','Luxury Soft Contour'],['marble-cast-shadow','Marble Cast Shadow'],
+      ['moonlit-silhouette-shadow','Moonlit Silhouette Shadow'],['negative-space-shadow','Negative Space Shadow'],['orbital-shadow-ring','Orbital Shadow Ring'],['prismatic-shadow-fringe','Prismatic Shadow Fringe'],
+      ['rim-depth-shadow','Rim Depth Shadow'],['stage-shadow-pool','Stage Shadow Pool'],['velvet-shadow-wrap','Velvet Shadow Wrap'],['windowpane-shadow','Windowpane Shadow']
+    ]
+  };
+
+  Object.keys(simpleOptionAdditions).forEach(function(key){
+    ensureSimpleOptionsCount(key, simpleOptionAdditions[key]);
+  });
+
+  ensureStringArrayCount('ornateElements', [
+    'Aurora Veil','Baroque Scrollwork','Celestial Chains','Chrome Spikes','Crown Halo',
+    'Crystal Droplets','Diamond Dust','Embroidered Sigils','Floating Gemstones','Glass Orbs',
+    'Gold Constellations','Heavenly Drapery','Icy Filigree','Laser Star Lines','Liquid Metal Ribbons',
+    'Mirror Shards','Moon Petals','Mystic Chains','Obsidian Roses','Opaline Frames'
+  ]);
+
+  femaleHair.splice(0, femaleHair.length, ...ensureStandaloneArrayCount(femaleHair, [
+    'Angled bob with sleek shine','Beehive glamour updo','Blunt chin-length bob','Braided crown with pearls','Butterfly layered blowout',
+    'Coily high ponytail','Curly shag with volume','Deep side-part waves','Double braided ponytails','Finger-coiled pixie',
+    'Glossy sculpted bun','Half-up braids with curls','Hollywood glam waves','Long mermaid waves','Loose textured lob',
+    'Micro braids waist-length','Pinned victory rolls','Rope twist ponytail','Short curly bob','Silk-pressed layered hair'
+  ]));
+  maleHair.splice(0, maleHair.length, ...ensureStandaloneArrayCount(maleHair, [
+    'Afro with temple fade','Bleached buzz cut','Braided top knot','Classic side part','Coily frohawk',
+    'Curly mullet fade','Defined curls with taper','Flat top with design part','Layered surfer hair','Loose twists shoulder length',
+    'Medium afro rounded shape','Mini loc ponytail','Mohawk fade','Polished slick back','Short curls with burst fade',
+    'Short sponged coils','Side-swept textured hair','Temple fade with beard','Top knot with undercut','Wavy slick crop'
+  ]));
+  nonbinaryHair.splice(0, nonbinaryHair.length, ...ensureStandaloneArrayCount(nonbinaryHair, [
+    'Airy layered bob','Bleached cropped cut','Braided crown fade','Curly mullet','Glossy shoulder lob',
+    'Long wet-look hair','Mini locs with undercut','Pixie with long fringe','Rounded afro shape','Shaggy layered cut',
+    'Short buzzed fade','Side-parted waves','Slick center-part bob','Soft blown-out curls','Textured mohawk',
+    'Twisted bun with tendrils','Undercut curls','Waist-length braids','Wet-look pixie','Wisp fringe cut'
+  ]));
+
+  femalePoses.splice(0, femalePoses.length, ...ensureStandaloneArrayCount(femalePoses, [
+    'Arched back beauty pose','Both hands lifting hair','Classic runway walk','Delicate hand on collarbone','Dramatic spin with fabric',
+    'Elegant side sit','Forward lean with confidence','Hands behind back, chin up','Head tilt with soft power','Heroic upward gaze',
+    'Holding flowing veil outward','One arm across waist','One foot forward power pose','Reclined editorial stretch','Sculptural arm framing',
+    'Side step with fashion attitude','Soft seated profile pose','Standing with one hand on thigh','Statuesque symmetrical stance','Turned body, face to camera'
+  ]));
+  malePoses.splice(0, malePoses.length, ...ensureStandaloneArrayCount(malePoses, [
+    'Chest-forward power stance','Classic hero walk','Elbows wide seated pose','Hands in pockets, chin raised','Leaning forward with intensity',
+    'One arm raised overhead','One hand adjusting collar','One knee bent against wall','Power profile with clenched jaw','Relaxed seated sprawl',
+    'Shoulders squared to camera','Side lean with crossed ankles','Slow stride past camera','Stoic hand clasp front','Strong overhead reach',
+    'Torso twist with direct stare','Turned back, face in profile','Wide-leg seated throne pose','Wrist watch adjustment pose','Youthful relaxed shrug pose'
+  ]));
+  nonbinaryPoses.splice(0, nonbinaryPoses.length, ...ensureStandaloneArrayCount(nonbinaryPoses, [
+    'Arms softly crossed','Balanced wide stance','Curved torso fashion pose','Elegant seated twist','Forward step with attitude',
+    'Hands at heart center','Hands in pockets relaxed','Head tipped back in light','Kneeling one-leg pose','One arm draped overhead',
+    'One hand on collarbone','Power crouch with symmetry','Relaxed lean against wall','Sculptural hands at waist','Soft side profile stance',
+    'Standing with flowing fabric','Statuesque front-facing pose','Torso twist with soft gaze','Wide seated editorial pose','Wrapped arms self-embrace pose'
+  ]));
+
+  const domOptionAdditions = {
+    artStyle: [
+      {value:'angelic crystal luxury — luminous crystal textures, heavenly glow, polished editorial fantasy',text:'Angelic Crystal Luxury'},
+      {value:'baroque celestial palace — gilded scrollwork, dramatic luxury, celestial royalty',text:'Baroque Celestial Palace'},
+      {value:'black diamond glamour — deep black lacquer, diamond shine, moody elite editorial',text:'Black Diamond Glamour'},
+      {value:'chrome void editorial — silver reflections, black void drama, futuristic prestige',text:'Chrome Void Editorial'},
+      {value:'couture astrology cover — magazine-cover styling, elevated zodiac storytelling',text:'Couture Astrology Cover'},
+      {value:'crystal cathedral fantasy — sacred light beams, jeweled surfaces, celestial sanctuary',text:'Crystal Cathedral Fantasy'},
+      {value:'dark velvet regal — rich velvet darkness, regal aura, expensive visual finish',text:'Dark Velvet Regal'},
+      {value:'diamond dust poster — ultra-clean poster look with sparkling luxury dust',text:'Diamond Dust Poster'},
+      {value:'dreamy opal surrealism — opaline sheen, soft fantasy atmosphere, surreal luxury',text:'Dreamy Opal Surrealism'},
+      {value:'editorial moon goddess — polished beauty-editorial direction with lunar symbolism',text:'Editorial Moon Goddess'},
+      {value:'emerald temple luxe — green jewel tones, temple grandeur, premium celestial mystique',text:'Emerald Temple Luxe'},
+      {value:'ethereal pearl fantasy — pearl luster, soft white glow, graceful celestial styling',text:'Ethereal Pearl Fantasy'},
+      {value:'frosted celestial noir — icy glow on shadowy noir backdrop, mystical sophistication',text:'Frosted Celestial Noir'},
+      {value:'gold leaf divinity — opulent gold leaf textures, divine symbolism, rich finish',text:'Gold Leaf Divinity'},
+      {value:'graphic luxury collage — high-end collage aesthetic, layered editorial elements',text:'Graphic Luxury Collage'},
+      {value:'midnight amethyst glamour — midnight purple tones, deep glam shine, elite mood',text:'Midnight Amethyst Glamour'},
+      {value:'molten gold fantasy — liquid gold textures, surreal luxe atmosphere, celestial heat',text:'Molten Gold Fantasy'},
+      {value:'obsidian oracle — black stone richness, mystical symbols, intense premium drama',text:'Obsidian Oracle'},
+      {value:'opal glam surreal — iridescent opal glow, polished glam, surreal celestial finish',text:'Opal Glam Surreal'},
+      {value:'sapphire celestial editorial — sapphire blues, radiant luxury editorial polish',text:'Sapphire Celestial Editorial'},
+      {value:'surreal zodiac billboard — bold commercial campaign energy, oversized zodiac glamour',text:'Surreal Zodiac Billboard'},
+      {value:'velvet eclipse romance — eclipse tones, romantic depth, luxe textured elegance',text:'Velvet Eclipse Romance'},
+      {value:'vogue mystic cover — elite magazine energy with polished mystic symbolism',text:'Vogue Mystic Cover'},
+      {value:'white marble divinity — glowing marble surfaces, divine stillness, premium clarity',text:'White Marble Divinity'},
+      {value:'zodiac relic couture — ancient relic energy remixed into modern couture fantasy',text:'Zodiac Relic Couture'}
+    ],
+    artText: [
+      {value:'beveled diamond lettering with faceted luxury edges',text:'Beveled Diamond'},
+      {value:'black chrome serif lettering with glossy reflection',text:'Black Chrome Serif'},
+      {value:'bold editorial slab letters with crisp campaign impact',text:'Bold Editorial Slab'},
+      {value:'burnished copper lettering with warm metallic sheen',text:'Burnished Copper'},
+      {value:'celestial rune lettering with mystic engraved finish',text:'Celestial Rune Letters'},
+      {value:'cracked marble title treatment with sculptural depth',text:'Cracked Marble Title'},
+      {value:'crystalline serif letters with prismatic refraction',text:'Crystalline Serif'},
+      {value:'diamond dust calligraphy with sparkle residue',text:'Diamond Dust Calligraphy'},
+      {value:'editorial vogue serif with luxury magazine presence',text:'Editorial Vogue Serif'},
+      {value:'electric plasma title with radiant energy outline',text:'Electric Plasma Title'},
+      {value:'engraved gold serif with regal dimensional shine',text:'Engraved Gold Serif'},
+      {value:'frosted glass lettering with cool translucent glow',text:'Frosted Glass Letters'},
+      {value:'gem-cut block letters with polished jewel faces',text:'Gem-Cut Block Letters'},
+      {value:'glossy resin bubble letters with luxe finish',text:'Glossy Resin Bubble'},
+      {value:'halo-lit blackletter with celestial aura',text:'Halo-Lit Blackletter'},
+      {value:'molten chrome cursive with liquid movement',text:'Molten Chrome Cursive'},
+      {value:'moon-carved relief lettering with soft shadow valleys',text:'Moon-Carved Relief'},
+      {value:'opal foil script with color-shifting shimmer',text:'Opal Foil Script'},
+      {value:'pearl embossed lettering with smooth luminous surface',text:'Pearl Embossed'},
+      {value:'sapphire beveled caps with royal reflective depth',text:'Sapphire Beveled Caps'},
+      {value:'shadowboxed title lettering with dimensional inset',text:'Shadowboxed Title'},
+      {value:'silver mirror serif with hard polished shine',text:'Silver Mirror Serif'},
+      {value:'star-metal extruded lettering with cosmic edge light',text:'Star-Metal Extruded'},
+      {value:'velvet flocked letters with plush tactile finish',text:'Velvet Flocked Letters'},
+      {value:'white porcelain lettering with glossy ceramic texture',text:'White Porcelain Letters'}
+    ],
+    artAccents: [
+      {value:'angel wings framing the composition',text:'Angel Wings'},
+      {value:'astrolabe metal rings orbiting the focal point',text:'Astrolabe Rings'},
+      {value:'baroque corner ornaments in luxe metallic finish',text:'Baroque Corners'},
+      {value:'beaded tassels and jewel drops',text:'Beaded Tassels'},
+      {value:'butterfly constellation accents',text:'Butterfly Constellations'},
+      {value:'cathedral light shards behind the subject',text:'Cathedral Light Shards'},
+      {value:'celestial chains draped across the frame',text:'Celestial Chains'},
+      {value:'chrome spikes for edgy luxury drama',text:'Chrome Spikes'},
+      {value:'crystal droplets suspended in air',text:'Crystal Droplets'},
+      {value:'floating gemstones around the typography',text:'Floating Gemstones'},
+      {value:'glass orb accents catching light',text:'Glass Orbs'},
+      {value:'gold constellation lines across background',text:'Gold Constellation Lines'},
+      {value:'halo crown hovering over the centerpiece',text:'Halo Crown'},
+      {value:'ice filigree swirling around the edges',text:'Ice Filigree'},
+      {value:'laser star streaks for futuristic energy',text:'Laser Star Streaks'},
+      {value:'liquid metal ribbons twisting through scene',text:'Liquid Metal Ribbons'},
+      {value:'mirror shard fragments reflecting the glow',text:'Mirror Shards'},
+      {value:'moon petal fragments drifting softly',text:'Moon Petals'},
+      {value:'obsidian rose flourishes for dark romance',text:'Obsidian Roses'},
+      {value:'opal frame details surrounding the composition',text:'Opal Frame Details'},
+      {value:'pearl strands looping through the layout',text:'Pearl Strands'},
+      {value:'prism beams slicing through mist',text:'Prism Beams'},
+      {value:'sacred sigils floating like seals',text:'Sacred Sigils'},
+      {value:'sun halo disc behind typography',text:'Sun Halo Disc'}
+    ],
+    artColor: [
+      {value:'amethyst and champagne luxury blend',text:'Amethyst and Champagne'},
+      {value:'black diamond monochrome with silver glint',text:'Black Diamond Monochrome'},
+      {value:'blush and pearl romance tones',text:'Blush and Pearl'},
+      {value:'burnished copper and smoke',text:'Burnished Copper and Smoke'},
+      {value:'celestial rose and violet',text:'Celestial Rose and Violet'},
+      {value:'champagne ivory glow with warm metallic lift',text:'Champagne Ivory Glow'},
+      {value:'cobalt and platinum contrast',text:'Cobalt and Platinum'},
+      {value:'crimson and onyx tension palette',text:'Crimson and Onyx'},
+      {value:'dusty mauve and twilight smoke',text:'Dusty Mauve and Twilight Smoke'},
+      {value:'electric lilac and chrome',text:'Electric Lilac and Chrome'},
+      {value:'ember orange and bronze',text:'Ember Orange and Bronze'},
+      {value:'fuchsia and black lacquer',text:'Fuchsia and Black Lacquer'},
+      {value:'jade and pearl richness',text:'Jade and Pearl'},
+      {value:'lavender mist and silver',text:'Lavender Mist and Silver'},
+      {value:'midnight navy and gold',text:'Midnight Navy and Gold'},
+      {value:'opal pastel iridescence',text:'Opal Pastel Iridescence'},
+      {value:'pearl nude and champagne',text:'Pearl Nude and Champagne'},
+      {value:'ruby and gilded gold',text:'Ruby and Gilded Gold'},
+      {value:'sapphire and white crystal',text:'Sapphire and White Crystal'},
+      {value:'smoky quartz and rose gold',text:'Smoky Quartz and Rose Gold'},
+      {value:'turquoise and molten gold',text:'Turquoise and Molten Gold'},
+      {value:'violet ice and black',text:'Violet Ice and Black'},
+      {value:'warm taupe and platinum',text:'Warm Taupe and Platinum'},
+      {value:'white gold and blush pink',text:'White Gold and Blush Pink'},
+      {value:'wine plum and silver',text:'Wine Plum and Silver'}
+    ],
+    artBackground: [
+      {value:'angelic cloud chamber with radiant atmosphere',text:'Angelic Cloud Chamber'},
+      {value:'art deco celestial hall with luminous symmetry',text:'Art Deco Celestial Hall'},
+      {value:'black lacquer studio with polished reflections',text:'Black Lacquer Studio'},
+      {value:'cathedral night interior with sacred glow',text:'Cathedral Night Interior'},
+      {value:'celestial ballroom with floating chandeliers',text:'Celestial Ballroom'},
+      {value:'crystal cave with refracted star light',text:'Crystal Cave'},
+      {value:'desert mirage horizon under luxe sky',text:'Desert Mirage Horizon'},
+      {value:'dream runway with editorial depth',text:'Dream Runway'},
+      {value:'floating island sanctuary in the stars',text:'Floating Island Sanctuary'},
+      {value:'gilded temple chamber with divine richness',text:'Gilded Temple Chamber'},
+      {value:'gothic velvet hall with mysterious elegance',text:'Gothic Velvet Hall'},
+      {value:'ice palace interior with luminous frost',text:'Ice Palace Interior'},
+      {value:'jewel vault atmosphere with reflective glam',text:'Jewel Vault'},
+      {value:'lunar garden in silver bloom',text:'Lunar Garden'},
+      {value:'mirror corridor with endless reflections',text:'Mirror Corridor'},
+      {value:'nebula temple with cosmic pillars',text:'Nebula Temple'},
+      {value:'obsidian stage with premium spotlighting',text:'Obsidian Stage'},
+      {value:'opal cloudscape with surreal softness',text:'Opal Cloudscape'},
+      {value:'prism tunnel with rainbow refractions',text:'Prism Tunnel'},
+      {value:'royal throne room with celestial motifs',text:'Royal Throne Room'},
+      {value:'sacred shrine lined with glowing sigils',text:'Sacred Shrine'},
+      {value:'star palace balcony over deep cosmos',text:'Star Palace Balcony'},
+      {value:'sunset marble terrace with glowing horizon',text:'Sunset Marble Terrace'},
+      {value:'velvet night club with luxe glow',text:'Velvet Night Club'},
+      {value:'white marble sanctuary with divine stillness',text:'White Marble Sanctuary'}
+    ],
+    artFinish: [
+      {value:'airbrushed editorial polish with smooth luxe gradients',text:'Airbrushed Editorial Polish'},
+      {value:'black lacquer sheen with deep reflective richness',text:'Black Lacquer Sheen'},
+      {value:'brushed metal finish with premium tactile texture',text:'Brushed Metal'},
+      {value:'ceramic porcelain gloss with polished clarity',text:'Ceramic Porcelain Gloss'},
+      {value:'chrome mirror finish with hard reflections',text:'Chrome Mirror'},
+      {value:'cracked marble surface with sculptural realism',text:'Cracked Marble'},
+      {value:'crystal glass finish with prismatic refraction',text:'Crystal Glass'},
+      {value:'diamond dust coating with elite sparkle',text:'Diamond Dust Coating'},
+      {value:'editorial print finish with campaign crispness',text:'Editorial Print Finish'},
+      {value:'foil stamped luxury finish with metallic catchlight',text:'Foil Stamped Luxury'},
+      {value:'frosted opal sheen with soft color shift',text:'Frosted Opal Sheen'},
+      {value:'gem-polished finish with faceted highlights',text:'Gem-Polished'},
+      {value:'glassy wet finish with high shine bloom',text:'Glassy Wet Finish'},
+      {value:'high-glam beauty retouch finish',text:'High-Glam Beauty Retouch'},
+      {value:'holographic foil finish with vivid shift',text:'Holographic Foil Finish'},
+      {value:'liquid metal coating with flowing reflection',text:'Liquid Metal Coating'},
+      {value:'luxury poster print finish',text:'Luxury Poster Print'},
+      {value:'mirror resin finish with glossy depth',text:'Mirror Resin Finish'},
+      {value:'pearlized satin finish with soft luster',text:'Pearlized Satin'},
+      {value:'powder matte editorial finish',text:'Powder Matte Editorial'},
+      {value:'shattered crystal finish with reflective edges',text:'Shattered Crystal Finish'},
+      {value:'silk shimmer finish with soft luxury glow',text:'Silk Shimmer'},
+      {value:'soft velvet flock finish with plush texture',text:'Soft Velvet Flock'},
+      {value:'stone carved finish with refined depth',text:'Stone Carved Finish'},
+      {value:'ultra-clean commercial render finish',text:'Ultra-Clean Commercial Render'}
+    ],
+    charEthnicity: [
+      {value:'Afro-Indigenous, rich warm brown skin tone',text:'Afro-Indigenous — Rich Warm Brown'},
+      {value:'Afro-Latina, deep espresso skin tone',text:'Afro-Latina — Deep Espresso'},
+      {value:'Afro-Latina, medium golden brown skin tone',text:'Afro-Latina — Medium Golden Brown'},
+      {value:'Arab, warm olive skin tone',text:'Arab — Warm Olive'},
+      {value:'Armenian, warm beige olive skin tone',text:'Armenian — Warm Beige Olive'},
+      {value:'Biracial Black and White, warm neutral brown skin tone',text:'Biracial Black and White — Warm Neutral Brown'},
+      {value:'Caribbean, medium bronzed brown skin tone',text:'Caribbean — Medium Bronzed Brown'},
+      {value:'Colombian, warm honey tan skin tone',text:'Colombian — Warm Honey Tan'},
+      {value:'Cuban, warm caramel tan skin tone',text:'Cuban — Warm Caramel Tan'},
+      {value:'Dominican, rich golden brown skin tone',text:'Dominican — Rich Golden Brown'},
+      {value:'Egyptian, golden olive skin tone',text:'Egyptian — Golden Olive'},
+      {value:'Haitian, deep rich cocoa skin tone',text:'Haitian — Deep Rich Cocoa'},
+      {value:'Jamaican, deep radiant brown skin tone',text:'Jamaican — Deep Radiant Brown'},
+      {value:'Kenyan, deep espresso brown skin tone',text:'Kenyan — Deep Espresso Brown'},
+      {value:'Mexican, warm beige tan skin tone',text:'Mexican — Warm Beige Tan'},
+      {value:'Moroccan, warm amber olive skin tone',text:'Moroccan — Warm Amber Olive'},
+      {value:'Pakistani, medium olive brown skin tone',text:'Pakistani — Medium Olive Brown'},
+      {value:'Somali, deep bronze brown skin tone',text:'Somali — Deep Bronze Brown'},
+      {value:'Trinidadian, warm golden brown skin tone',text:'Trinidadian — Warm Golden Brown'},
+      {value:'White, cool neutral skin tone',text:'White — Cool Neutral'}
+    ],
+    charBodyType: [
+      {value:'compact athletic build',text:'Compact Athletic'},
+      {value:'curvy athletic figure',text:'Curvy Athletic'},
+      {value:'delicate slim build',text:'Delicate Slim'},
+      {value:'elegant elongated frame',text:'Elegant Elongated'},
+      {value:'hourglass sculpted figure',text:'Hourglass Sculpted'},
+      {value:'lean runway build',text:'Lean Runway'},
+      {value:'mid-size confident figure',text:'Mid-Size Confident'},
+      {value:'petite curvy figure',text:'Petite Curvy'},
+      {value:'powerful thick build',text:'Powerful Thick'},
+      {value:'rectangular balanced frame',text:'Rectangular Balanced'},
+      {value:'rounded soft figure',text:'Rounded Soft'},
+      {value:'slender statuesque build',text:'Slender Statuesque'},
+      {value:'soft athletic figure',text:'Soft Athletic'},
+      {value:'soft plus-size figure',text:'Soft Plus-Size'},
+      {value:'strong feminine build',text:'Strong Feminine'},
+      {value:'strong masculine build',text:'Strong Masculine'},
+      {value:'thick curvy build',text:'Thick Curvy'},
+      {value:'toned hourglass build',text:'Toned Hourglass'},
+      {value:'wide-hipped balanced figure',text:'Wide-Hipped Balanced'},
+      {value:'wide-shouldered sculpted build',text:'Wide-Shouldered Sculpted'}
+    ],
+    charAge: [
+      {value:'18 to 19, fresh youthful energy',text:'18–19 — Fresh Youthful'},
+      {value:'mid 20s, magnetic and stylish',text:'Mid 20s — Magnetic & Stylish'},
+      {value:'late 30s, powerful and polished',text:'Late 30s — Powerful & Polished'},
+      {value:'mid 40s, elegant and influential',text:'Mid 40s — Elegant & Influential'},
+      {value:'early 50s, radiant and assured',text:'Early 50s — Radiant & Assured'},
+      {value:'late 50s, refined and magnetic',text:'Late 50s — Refined & Magnetic'},
+      {value:'early 60s, iconic and poised',text:'Early 60s — Iconic & Poised'},
+      {value:'late 60s, graceful and powerful',text:'Late 60s — Graceful & Powerful'},
+      {value:'80s, wise and majestic',text:'80s — Wise & Majestic'},
+      {value:'ageless celestial energy',text:'Ageless — Celestial Energy'},
+      {value:'timeless adult presence',text:'Timeless — Adult Presence'}
+    ],
+    charMakeup: [
+      {value:'amber shimmer eye with glossy nude lip',text:'Amber Shimmer Eye + Nude Gloss'},
+      {value:'black cherry lip with smoked liner',text:'Black Cherry Lip + Smoked Liner'},
+      {value:'bronzed editorial skin with glossy highlight',text:'Bronzed Editorial Skin'},
+      {value:'champagne glow lid with soft brown lip',text:'Champagne Glow Lid + Brown Lip'},
+      {value:'classic glam liner with satin nude lip',text:'Classic Glam Liner + Nude Satin Lip'},
+      {value:'cool silver eye with mauve gloss',text:'Cool Silver Eye + Mauve Gloss'},
+      {value:'copper halo eye with caramel lip',text:'Copper Halo Eye + Caramel Lip'},
+      {value:'deep espresso lip with sculpted contour',text:'Deep Espresso Lip + Sculpted Contour'},
+      {value:'emerald shimmer eye with nude gloss',text:'Emerald Shimmer Eye + Nude Gloss'},
+      {value:'fresh clean beauty look with balm shine',text:'Fresh Clean Beauty + Balm Shine'},
+      {value:'glossy mocha lip with bronzed skin',text:'Glossy Mocha Lip + Bronzed Skin'},
+      {value:'graphic white liner with glossy neutral lip',text:'Graphic White Liner + Neutral Gloss'},
+      {value:'lavender shimmer eye with rosy nude lip',text:'Lavender Shimmer Eye + Rosy Nude Lip'},
+      {value:'matte nude lip with soft smoked eye',text:'Matte Nude Lip + Soft Smoked Eye'},
+      {value:'metallic gold eye with cocoa lip',text:'Metallic Gold Eye + Cocoa Lip'},
+      {value:'peach glow blush with soft gloss lip',text:'Peach Glow Blush + Soft Gloss Lip'},
+      {value:'ruby jewel eye with deep berry lip',text:'Ruby Jewel Eye + Deep Berry Lip'},
+      {value:'soft champagne highlight with brown liner',text:'Soft Champagne Highlight + Brown Liner'},
+      {value:'violet metallic eye with clear gloss',text:'Violet Metallic Eye + Clear Gloss'},
+      {value:'wet skin finish with taupe gloss lip',text:'Wet Skin Finish + Taupe Gloss Lip'}
+    ]
+  };
+
+  ['artStyle','artText','artAccents','artColor','artBackground','artFinish','charEthnicity','charBodyType','charAge','charMakeup'].forEach(function(id){
+    ensureDomSelectCount(id, domOptionAdditions[id] || [], false);
+  });
+
+  ensureDomSelectCount('charGender', [], true);
+}
+
+
+/* ── HELPERS ── */
+function el(id){return document.getElementById(id);}
+function selectedValues(node){return Array.from(node.selectedOptions).map(o=>o.value).filter(v=>v&&v.toLowerCase()!=='none');}
+function optionLookup(src){const m={};(simpleOptions[src]||[]).forEach(p=>m[p[0]]=p[1]);return m;}
+const displayMaps={font:optionLookup('font'),colors:optionLookup('colors'),symbol:optionLookup('symbol'),background:optionLookup('background'),cameraShot:optionLookup('cameraShot'),lensType:optionLookup('lensType'),lightingMode:optionLookup('lightingMode'),shadowMode:optionLookup('shadowMode')};
+function pickDisplay(values,fallback,srcMap){if(!values||!values.length)return fallback;if(!srcMap)return values.join(', ');return values.map(v=>srcMap[v]||v).join(', ');}
+
+async function copyText(id,flashId){
+  const node=el(id);const text=node.value||'';
+  try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text);}else{node.focus();node.select();document.execCommand('copy');}}
+  catch(e){node.focus();node.select();document.execCommand('copy');}
+  const f=el(flashId);if(f){f.classList.add('show');setTimeout(()=>f.classList.remove('show'),1800);}
+}
+
+/* ── CHARACTER TOGGLE ── */
+function toggleChar(){
+  uiState.charOn=!uiState.charOn;
+  el('charToggle').classList.toggle('on',uiState.charOn);
+  el('charBody').className=uiState.charOn?'on':'off';
+  generateOutputs();
+}
+
+/* ── GENDER GATE ── */
+function fillSelect(node,options){
+  node.innerHTML='';
+  options.forEach(function(opt){const o=document.createElement('option');o.value=opt;o.textContent=opt;node.appendChild(o);});
+}
+
+function onGenderChange(){
+  const gender=el('charGender').value;
+  const hairSel=el('charHair');
+  const poseSel=el('charPose');
+  const mkCard=el('makeupCard');
+
+  if(gender==='man'){
+    fillSelect(hairSel,maleHair);
+    fillSelect(poseSel,malePoses);
+    mkCard.classList.add('hidden');
+    el('charMakeup').value='none';
+  } else if(gender==='nonbinary'){
+    fillSelect(hairSel,nonbinaryHair);
+    fillSelect(poseSel,nonbinaryPoses);
+    mkCard.classList.remove('hidden');
+  } else {
+    fillSelect(hairSel,femaleHair);
+    fillSelect(poseSel,femalePoses);
+    mkCard.classList.remove('hidden');
+  }
+  generateOutputs();
+}
+
+/* ── BUILD BUILDER ── */
+function populateSelectPairs(node,pairs,isSingle){pairs.forEach(function(pair){const o=document.createElement('option');o.value=pair[0];o.textContent=pair[1];node.appendChild(o);});}
+
+function makeFieldCard(field){
+  const wrap=document.createElement('div');wrap.className='field-card';
+  const header=document.createElement('div');header.className='between';header.style.marginBottom='12px';
+  const lbl=document.createElement('label');lbl.className='label';lbl.style.marginBottom='0';lbl.textContent=field.label;header.appendChild(lbl);
+  const lock=document.createElement('button');lock.type='button';lock.className='btn lock';lock.style.cssText='padding:7px 12px;font-size:12px;';lock.textContent='Lock';
+  lock.addEventListener('click',function(){uiState.locks[field.key]=!uiState.locks[field.key];lock.classList.toggle('active',Boolean(uiState.locks[field.key]));lock.textContent=uiState.locks[field.key]?'Locked':'Lock';});
+  header.appendChild(lock);wrap.appendChild(header);
+  let input;
+  if(field.type==='single'){input=document.createElement('select');input.id=field.key;input.className='field';populateSelectPairs(input,simpleOptions[field.source],true);}
+  else if(field.type==='multiSimple'){input=document.createElement('select');input.id=field.key;input.className='field';input.multiple=true;populateSelectPairs(input,simpleOptions[field.source],false);input.size=7;}
+  else if(field.type==='multi'){input=document.createElement('select');input.id=field.key;input.className='field';input.multiple=true;const pairs=dropdownData[field.key].map(v=>[v,v]);populateSelectPairs(input,pairs,false);input.size=7;}
+  else if(field.type==='textarea'){input=document.createElement('textarea');input.id=field.key;input.className='field';input.placeholder=field.placeholder||'';}
+  else{input=document.createElement('input');input.id=field.key;input.className='field';input.type='text';input.placeholder=field.placeholder||'';}
+  wrap.appendChild(input);
+  if(field.custom){const el2=document.createElement('label');el2.className='label';el2.style.marginTop='14px';el2.textContent=field.label+' Custom Text';wrap.appendChild(el2);const ex=document.createElement('textarea');ex.id=field.key+'Custom';ex.className='field';ex.placeholder='Optional custom '+field.label.toLowerCase()+' details...';wrap.appendChild(ex);}
+  return wrap;
+}
+
+function buildBuilder(){const grid=el('builderGrid');grid.innerHTML='';fields.forEach(function(field){grid.appendChild(makeFieldCard(field));});}
+
+function buildPresets(){
+  const grid=el('presetGrid');grid.innerHTML='';
+  presets.forEach(function(preset,i){
+    const btn=document.createElement('button');btn.type='button';btn.className='btn';btn.style.cssText='text-align:left;border-radius:18px;padding:12px 14px;';
+    btn.innerHTML='<div style="font-size:14px;font-weight:700;margin-bottom:4px;">'+(i+1)+'. '+preset.name+'</div><div class="tiny">Click to apply.</div>';
+    btn.addEventListener('click',function(){applyPreset(preset);});grid.appendChild(btn);
+  });
+}
+
+/* ── SET / GET ── */
+function setSelectValues(node,values){Array.from(node.options).forEach(function(opt){opt.selected=values.indexOf(opt.value)>-1;});if(!values.length&&node.options.length)node.options[0].selected=true;}
+
+function setValues(values){
+  fields.forEach(function(field){
+    const node=el(field.key);if(!node)return;
+    const value=values&&values[field.key]!==undefined?values[field.key]:defaults[field.key];
+    if(field.type==='multi'||field.type==='multiSimple')setSelectValues(node,Array.isArray(value)?value:[]);
+    else node.value=value!==undefined?value:'';
+    const custom=el(field.key+'Custom');if(custom)custom.value=values&&values[field.key+'Custom']?values[field.key+'Custom']:'';
+  });
+  generateOutputs();
+}
+
+function getFormState(){
+  const state={};
+  fields.forEach(function(field){
+    const node=el(field.key);if(!node)return;
+    if(field.type==='multi'||field.type==='multiSimple')state[field.key]=selectedValues(node);
+    else state[field.key]=String(node.value||'').trim();
+  });
+  return state;
+}
+
+function getCustomText(key){const node=el(key+'Custom');return node?String(node.value||'').trim():'';}
+function customBundleText(){return fields.map(function(f){const v=getCustomText(f.key);return v?f.label+': '+v:'';}).filter(Boolean).join('; ');}
+
+/* ── CHARACTER PROMPT LINE ── */
+function buildCharacterLine(zodiac){
+  if(!uiState.charOn)return'';
+  const gender=el('charGender').value;
+  const ethnicity=el('charEthnicity').value;
+  const bodyType=el('charBodyType').value;
+  const age=el('charAge').value;
+  const hair=el('charHair').value;
+  const pose=el('charPose').value;
+  const makeup=(gender!=='man')?el('charMakeup').value:'none';
+  const custom=el('charCustom').value.trim();
+
+  // update auto-trait display
+  el('autoEye').textContent=zodiac.eye||'—';
+  el('autoSkin').textContent=zodiac.skin||'—';
+  el('autoVibe').textContent=zodiac.vibe||'—';
+  el('autoEnergy').textContent=zodiac.energy||'—';
+
+  const parts=[];
+  if(gender&&gender!=='none')parts.push(gender==='nonbinary'?'non-binary androgynous person':gender);
+  if(age&&age!=='none')parts.push(age);
+  if(ethnicity&&ethnicity!=='none')parts.push(ethnicity);
+  if(bodyType&&bodyType!=='none')parts.push(bodyType);
+  if(hair&&hair!=='none')parts.push(hair+' hair');
+
+  let line=parts.length?'Subject: '+parts.join(', ')+'.':'';
+  const autoLine=[zodiac.eye,zodiac.skin,zodiac.vibe,zodiac.energy].filter(Boolean).join(', ');
+  if(autoLine)line+=' Zodiac auto-traits: '+autoLine+'.';
+  if(pose&&pose!=='none')line+=' Pose: '+pose+'.';
+  if(makeup&&makeup!=='none')line+=' Beauty look: '+makeup+'.';
+  if(custom)line+=' Additional character notes: '+custom+'.';
+  return line;
+}
+
+/* ── ART DIRECTION HELPERS ── */
+function getArtValues(id){
+  const node=el(id);if(!node)return[];
+  return Array.from(node.selectedOptions).map(o=>o.value).filter(v=>v&&v!=='none');
+}
+function buildArtDirectionLine(){
+  const style=getArtValues('artStyle');
+  const text=getArtValues('artText');
+  const accents=getArtValues('artAccents');
+  const color=getArtValues('artColor');
+  const bg=getArtValues('artBackground');
+  const finish=getArtValues('artFinish');
+  const parts=[];
+  if(style.length) parts.push('Art style: '+style.join('; ')+'.');
+  if(text.length) parts.push('Text treatment: '+text.join(', ')+'.');
+  if(accents.length) parts.push('Accent elements: '+accents.join(', ')+'.');
+  if(color.length) parts.push('Color mood: '+color.join(', ')+'.');
+  if(bg.length) parts.push('Background: '+bg.join(', ')+'.');
+  if(finish.length) parts.push('Finish and rendering: '+finish.join(', ')+'.');
+  return parts.length?parts.join(' '):'';
+}
+
+/* ── GENERATE ── */
+
+function buildMarketingOutput(state,zodiac,photoPrompt,videoPrompt){
+  const zodiacName = zodiac.name;
+  const styleLine = [
+    pickDisplay(state.colors,'luxury celestial tones',displayMaps.colors),
+    pickDisplay(state.symbol,'premium zodiac styling',displayMaps.symbol),
+    pickDisplay(state.background,'editorial cosmic setting',displayMaps.background)
+  ].filter(Boolean).join(' · ');
+
+  const caption1 = `Your zodiac deserves more than basic. ${zodiacName} just got the luxury treatment ✨ Save this for your next premium AI image drop.`;
+  const caption2 = `Built for creators who want high-end results fast. This ${zodiacName}-inspired prompt delivers bold detail, premium styling, and scroll-stopping visuals.`;
+
+  const hashtags = `#${zodiacName} #ZodiacArt #AIPromptGenerator #AIImages #DigitalProducts #ContentCreatorTools #LuxuryAesthetic #PromptBundle #InstantDownload #AIArtPrompts #FacelessContent #CreativeBusiness #WomenInBusiness #DigitalDownload #GlamorousGrammyGlowUp`;
+
+  const seo = [
+    `${zodiacName} prompt generator`,
+    `luxury zodiac AI prompts`,
+    `${zodiacName.toLowerCase()} astrology artwork prompt`,
+    `premium AI image generator prompts`,
+    `instant download prompt bundle`,
+    `celestial editorial AI art prompt`
+  ].join(', ');
+
+  const ctas = [
+    'Grab the bundle now before your next post goes live.',
+    'Tap the link and start creating premium visuals today.',
+    'Save this idea, then turn it into a paid product.',
+    'Use this generator to create content that actually looks expensive.'
+  ].join('\n');
+
+  const email = `Subject: Your next best-selling zodiac design starts here
+
+Body:
+Want premium images without spending hours writing prompts?
+This generator helps you create luxury zodiac visuals, scroll-stopping content, and product-ready artwork fast.
+Get instant access here: [INSERT LINK]
+CTA: Download now and start creating today.`;
+
+  const pinterest = `Pinterest Title:
+${zodiacName} Luxury AI Prompt Generator
+
+Pinterest Description:
+Create premium ${zodiacName} zodiac art, editorial-style celestial images, and high-end digital products with this luxury AI prompt generator. Instant download. Perfect for creators, sellers, and content marketers.`;
+
+  const tiktok = `TikTok Hook:
+POV: you stopped using boring prompts and started making luxury zodiac content.
+
+TikTok Caption:
+Watch me turn one ${zodiacName} prompt into premium content in seconds. Link in bio for the full generator.
+${hashtags}`;
+
+  const facebook = `Facebook Post:
+I made this for creators who are tired of plain AI images. This luxury ${zodiacName} prompt generator helps you create premium zodiac artwork, digital products, and social content faster. If you want high-end results without the guesswork, this is for you.
+[INSERT LINK]`;
+
+  const instagram = `Instagram Caption:
+Luxury meets astrology ✨ This ${zodiacName} generator was made for creators who want premium AI visuals, better content, and products that actually look worth buying.
+Drop "${zodiacName}" in the comments if this is your sign.
+${hashtags}`;
+
+  const youtube = `YouTube Description:
+In this video, I’m using my luxury ${zodiacName} prompt generator to create premium zodiac artwork and content-ready AI visuals. This tool is built for creators who want high-end results, faster workflows, and digital products that stand out.
+Get the generator here: [INSERT LINK]
+
+Keywords:
+${seo}`;
+
+  const ads = `Ad Copy Variations:
+1) Create luxury ${zodiacName} visuals in minutes, not hours. Instant download.
+2) Turn astrology content into premium products with this all-in-one prompt generator.
+3) Stop guessing. Start generating high-end zodiac content that sells.`;
+
+  return [
+    `MARKETING SUITE — ${zodiacName.toUpperCase()}`,
+    '',
+    `BRAND ANGLE: Premium zodiac content for creators, sellers, and digital product businesses.`,
+    `STYLE DIRECTION: ${styleLine}`,
+    '',
+    'CAPTIONS:',
+    `1. ${caption1}`,
+    `2. ${caption2}`,
+    '',
+    'HASHTAGS:',
+    hashtags,
+    '',
+    'SEO KEYWORDS:',
+    seo,
+    '',
+    'CTA OPTIONS:',
+    ctas,
+    '',
+    email,
+    '',
+    pinterest,
+    '',
+    tiktok,
+    '',
+    facebook,
+    '',
+    instagram,
+    '',
+    youtube,
+    '',
+    ads,
+    '',
+    'PROMO ANGLES:',
+    '- Sell the generator as an instant-download creator tool',
+    '- Use the image outputs as TikTok, Pinterest, and Instagram promo content',
+    '- Pair each zodiac design with a limited-time offer or bundle discount',
+    '- Showcase before/after prompt results to drive clicks',
+    '',
+    'PHOTO PROMPT SUMMARY:',
+    photoPrompt.slice(0, 500),
+    '',
+    'VIDEO PROMPT SUMMARY:',
+    videoPrompt.slice(0, 500)
+  ].join('\n');
+}
+
+
+
+function getActiveChipValues(group){
+  return Array.from(document.querySelectorAll('.suno-chip[data-group="'+group+'"].active')).map(function(btn){return btn.getAttribute('data-value');});
+}
+
+function updateSunoRangeLabels(){
+  if(el('sunoWeirdnessValue')) el('sunoWeirdnessValue').textContent=(el('sunoWeirdness').value||15)+'%';
+  if(el('sunoStyleValue')) el('sunoStyleValue').textContent=(el('sunoStyleInfluence').value||90)+'%';
+  if(el('sunoAudioValue')) el('sunoAudioValue').textContent=(el('sunoAudioInfluence').value||40)+'%';
+}
+
+function buildSunoOutput(zodiac){
+  const genres = getActiveChipValues('genre');
+  const styles = getActiveChipValues('style');
+  const customGenre = (el('sunoCustomGenre') && el('sunoCustomGenre').value.trim()) || '';
+  const customStyle = (el('sunoCustomStyle') && el('sunoCustomStyle').value.trim()) || '';
+  const weirdness = el('sunoWeirdness') ? el('sunoWeirdness').value : '15';
+  const styleInfluence = el('sunoStyleInfluence') ? el('sunoStyleInfluence').value : '90';
+  const audioInfluence = el('sunoAudioInfluence') ? el('sunoAudioInfluence').value : '40';
+  const genreLine = [genres.join(', '), customGenre].filter(Boolean).join(' | ') || 'open genre';
+  const styleLine = [styles.join(', '), customStyle].filter(Boolean).join(' | ') || 'open style';
+  const mood = zodiac.keywords;
+  const chorus = [
+    'Shine like '+zodiac.name+', glow all night,',
+    'Golden signs in the sky so bright,',
+    'Big main character energy, no fear,',
+    'Luxury vibe and the stars right here.'
+  ].join('\n');
+  const verse = [
+    'Step in the frame, let the whole room stare,',
+    'Built from the fire, the moon, the air,',
+    zodiac.name+' energy with a premium wave,',
+    'Turn one idea into a look that slays.'
+  ].join('\n');
+  const bridge = [
+    'Raise that light, let the beat move slow,',
+    'From the screen to the bag, let the whole thing glow.'
+  ].join('\n');
+  const jingleLyrics = [
+    'Shine like '+zodiac.name+', glow all night,',
+    'Luxury stars and a brand-new light,',
+    'Tap that link, let your visuals fly,',
+    zodiac.name+' energy, premium sky.'
+  ].join('\n');
+  const shortLyrics = [verse, chorus].join('\n\n');
+  const oneMinuteLyrics = [verse, chorus, bridge, chorus].join('\n\n');
+  return [
+    'SUNO PROMPT SUITE — '+zodiac.name.toUpperCase(),
+    '',
+    'GENRE DIRECTION:',
+    genreLine,
+    '',
+    'STYLE DIRECTION:',
+    styleLine,
+    '',
+    'SUGGESTED SETTINGS:',
+    'Weirdness: '+weirdness+'%',
+    'Style Influence: '+styleInfluence+'%',
+    'Audio Influence: '+audioInfluence+'%',
+    '',
+    'JINGLE PROMPT:',
+    'Create a catchy branded jingle inspired by '+zodiac.name+' energy. Keep it replayable, hook-first, polished, and commercial-ready. Genre freedom: '+genreLine+'. Style freedom: '+styleLine+'. Mood keywords: '+mood+'.',
+    '',
+    'JINGLE LYRICS (under 1000 chars):',
+    jingleLyrics,
+    '',
+    '30-SECOND SONG PROMPT:',
+    'Create a 30-second song for promo content with a strong hook, clean bounce, luxury feel, and fast replay value. Let the production stay flexible across '+genreLine+'. Use '+styleLine+' as influence, not a hard limit. Mood: '+mood+'.',
+    '',
+    '30-SECOND LYRICS (under 1000 chars):',
+    shortLyrics,
+    '',
+    '1-MINUTE SONG PROMPT:',
+    'Create a 1-minute song with an intro, hook, short verse, and repeatable chorus. Keep it premium, catchy, and built for ads, reels, and product promos. Allow full freedom inside '+genreLine+'. Use '+styleLine+' as optional inspiration. Mood: '+mood+'.',
+    '',
+    '1-MINUTE LYRICS (under 1000 chars):',
+    oneMinuteLyrics
+  ].join('\n');
+}
+
+
+function generateOutputs(){
+  const state=getFormState();
+  const zodiac=zodiacData[state.zodiac]||zodiacData.pisces;
+  el('generator-title').textContent='Currently building: '+zodiac.name;
+  const fonts=pickDisplay(state.font,'Classic Bold',displayMaps.font);
+  const colors=pickDisplay(state.colors,'celestial luxury tones',displayMaps.colors);
+  const symbols=pickDisplay(state.symbol,'elegant zodiac representation',displayMaps.symbol);
+  const backgrounds=state.background&&state.background.length?pickDisplay(state.background,'',displayMaps.background):'subject-suitable celestial background for '+zodiac.name;
+  const ornate=pickDisplay(state.ornateElements,'minimal ornate detailing');
+  const camera=pickDisplay(state.cameraShot,'Three-quarter Portrait',displayMaps.cameraShot);
+  const lens=pickDisplay(state.lensType,'85mm Beauty',displayMaps.lensType);
+  const lighting=pickDisplay(state.lightingMode,'cinematic celestial lighting',displayMaps.lightingMode);
+  const shadow=pickDisplay(state.shadowMode,'soft dimensional shadows',displayMaps.shadowMode);
+  const effects=state.effects||'particle shimmer, cinematic glow, atmospheric depth';
+  const customDetails=state.customDetails||'';
+  const customBundle=customBundleText();
+  const charLine=buildCharacterLine(zodiac);
+  const artLine=buildArtDirectionLine();
+
+  const photoPrompt=[
+    'Create a high-end '+zodiac.name+' zodiac artwork featuring the '+zodiac.name+' sign.',
+    '',
+    artLine?'Art direction: '+artLine:'',
+    charLine?charLine:'',
+    'Typography direction: the word "'+zodiac.name+'" appears in '+fonts+', treated with '+colors+', premium texture, elegant dimensionality, and polished celestial refinement.',
+    'Symbol direction: include '+symbols+' interpretations of the '+zodiac.name+' sign integrated with the typography and scene.',
+    'Scene direction: place within '+backgrounds+', fully suitable for the zodiac and celestial subject matter.',
+    'Visual styling: ornate elements '+ornate+'; camera '+camera+'; lens '+lens+'; lighting '+lighting+'; shadows '+shadow+'; effects '+effects+'.',
+    'Mood keywords: '+zodiac.keywords+'.',
+    'Creative rule: each render must feel fresh and visually distinct while maintaining the same overall zodiac aesthetic.',
+    'Output type: ultra-detailed premium photo prompt, luxury astrology editorial, cohesive composition, rich materials, 4K, print-ready.',
+    customBundle?'Custom category notes: '+customBundle+'.':'',
+    customDetails?'Additional master details: '+customDetails+'.':''
+  ].filter(Boolean).join('\n');
+
+  const videoPrompt=[
+    'Create a cinematic video script prompt based on the '+zodiac.name+' zodiac aesthetic.',
+    '',
+    artLine?'Art direction: '+artLine:'',
+    charLine?charLine:'',
+    'Core visual identity: '+zodiac.name+', '+colors+', '+symbols+', background built from '+backgrounds+'.',
+    'Styling direction: ornate elements '+ornate+'.',
+    'Camera plan: use '+camera+' framing with '+lens+'; cinematic movement, parallax, slow reveal, premium composition.',
+    'Lighting plan: '+lighting+'. Shadow plan: '+shadow+'. Effects: '+effects+'.',
+    'Script structure: opening environment reveal, hero focus on typography and symbol, styled zodiac centerpiece, detail close-ups, motion transition, final iconic end frame.',
+    'Creative rule: each render must feel fresh and visually distinct while maintaining the same overall zodiac aesthetic.',
+    'Output type: lush cinematic video prompt, luxury celestial fantasy, polished motion design, immersive atmosphere.',
+    customBundle?'Custom category notes: '+customBundle+'.':'',
+    customDetails?'Additional master details: '+customDetails+'.':''
+  ].filter(Boolean).join('\n');
+
+  el('photoOutput').value=photoPrompt;
+  el('videoOutput').value=videoPrompt;
+  if (el('marketingOutput')) {
+    el('marketingOutput').value = buildMarketingOutput(state, zodiac, photoPrompt, videoPrompt);
+  }
+  if (el('sunoOutput')) {
+    updateSunoRangeLabels();
+    el('sunoOutput').value = buildSunoOutput(zodiac);
+  }
+}
+
+/* ── RANDOMIZE ── */
+function sample(list,count){const pool=list.slice();const out=[];while(pool.length&&out.length<count){const i=Math.floor(Math.random()*pool.length);out.push(pool.splice(i,1)[0]);}return out;}
+
+function randomizeForm(){
+  fields.forEach(function(field){
+    if(uiState.locks[field.key])return;
+    const node=el(field.key);if(!node)return;
+    if(field.type==='multiSimple'){const vals=simpleOptions[field.source].map(p=>p[0]).filter(v=>v!=='none');setSelectValues(node,sample(vals,Math.random()>.6?2:1));}
+    else if(field.type==='multi'){const vals=dropdownData[field.key].filter(v=>v!=='None');setSelectValues(node,sample(vals,Math.random()>.6?2:1));}
+    else if(field.type==='single'){const vals=simpleOptions[field.source].map(p=>p[0]);node.value=sample(vals,1)[0];}
+    else if(field.type==='text'){const seeds=['stardust trails, soft bloom, floating sparks','volumetric glow, glitter dust, lens shimmer','mist curls, radiant particles, atmospheric haze'];node.value=sample(seeds,1)[0];}
+    else if(field.type==='textarea'){node.value='';}
+    const custom=el(field.key+'Custom');if(custom&&!uiState.locks[field.key])custom.value='';
+  });
+  generateOutputs();
+}
+
+/* ── CLEAR / SAVE / HISTORY ── */
+function clearAll(){
+  // clear every main builder field directly to none/empty
+  fields.forEach(function(field){
+    const node=el(field.key);
+    if(!node)return;
+    if(field.type==='multi'||field.type==='multiSimple'){
+      Array.from(node.options).forEach(function(opt){opt.selected=false;});
+      if(node.options[0])node.options[0].selected=true; // select None
+    } else {
+      node.value='none';
+    }
+    const custom=el(field.key+'Custom');
+    if(custom)custom.value='';
+  });
+  // clear all art direction dropdowns to None
+  ['artStyle','artText','artAccents','artColor','artBackground','artFinish'].forEach(function(id){
+    const node=el(id);
+    if(!node)return;
+    Array.from(node.options).forEach(function(opt){opt.selected=false;});
+    if(node.options[0])node.options[0].selected=true;
+  });
+  // clear all character fields to none/empty
+  ['charGender','charEthnicity','charBodyType','charAge','charMakeup'].forEach(function(id){
+    const node=el(id);
+    if(node)node.value='none';
+  });
+  el('charCustom').value='';
+  el('photoOutput').value='';
+  el('videoOutput').value='';
+  el('variationOutput').value='';
+  if (el('marketingOutput')) el('marketingOutput').value='';
+  if (el('sunoCustomGenre')) el('sunoCustomGenre').value='';
+  if (el('sunoCustomStyle')) el('sunoCustomStyle').value='';
+  document.querySelectorAll('.suno-chip').forEach(function(btn){btn.classList.remove('active');});
+  if(document.querySelector('.suno-chip[data-group="genre"]')) document.querySelector('.suno-chip[data-group="genre"]').classList.add('active');
+  if(document.querySelector('.suno-chip[data-group="style"]')) document.querySelector('.suno-chip[data-group="style"]').classList.add('active');
+  if (el('sunoWeirdness')) el('sunoWeirdness').value='15';
+  if (el('sunoStyleInfluence')) el('sunoStyleInfluence').value='90';
+  if (el('sunoAudioInfluence')) el('sunoAudioInfluence').value='40';
+  if (el('sunoOutput')) el('sunoOutput').value='';
+  updateSunoRangeLabels();
+  onGenderChange();
+}
+
+function savePrompt(){
+  const entry={time:new Date().toLocaleString(),photo:el('photoOutput').value,video:el('videoOutput').value};
+  uiState.history.unshift(entry);uiState.history=uiState.history.slice(0,15);
+  safeSetHistory(uiState.history);renderHistory();
+}
+
+function escapeHtml(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function renderHistory(){
+  const list=el('historyList');list.innerHTML='';
+  if(!uiState.history.length){list.innerHTML='<div class="tiny">No saved prompts yet.</div>';return;}
+  uiState.history.forEach(function(item,i){
+    const card=document.createElement('div');card.className='field-card';card.style.marginBottom='12px';
+    card.innerHTML='<div class="between" style="margin-bottom:8px;"><div style="font-size:14px;font-weight:700;">Saved Prompt '+(i+1)+'</div><div class="tiny">'+escapeHtml(item.time)+'</div></div><details><summary class="tiny" style="cursor:pointer;">View saved outputs</summary><div style="padding-top:12px;display:grid;gap:12px;"><textarea class="prompt" readonly>'+escapeHtml(item.photo)+'</textarea><textarea class="prompt" readonly>'+escapeHtml(item.video)+'</textarea></div></details>';
+    list.appendChild(card);
+  });
+}
+
+function createVariations(){
+  const zodiac=zodiacData[el('zodiac').value]||zodiacData.pisces;
+  const seeds=['switch to a sleek celestial layout, low angle camera, neon edge light, futuristic zodiac city scene','switch to an ornate regal layout, rich textures, close-up camera, moonlit side light, marble temple zodiac scene','switch to a flowing ethereal layout, luminous accents, wide cinematic framing, volumetric god rays, cosmic nebula environment'];
+  const lines=seeds.map(function(seed,i){return 'Variation '+(i+1)+': Keep the same '+zodiac.name+' celestial aesthetic, but fully change camera, lighting, scene, and styling emphasis. Use '+seed+'.';});
+  el('variationOutput').value=lines.join('\n\n');
+}
+
+function applyPreset(preset){
+  const merged=Object.assign({},defaults,getFormState(),preset.values||{});
+  setValues(merged);el('outputArea').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ── EVENTS ── */
+function addEventHandlers(){
+  fields.forEach(function(field){
+    const node=el(field.key);if(!node)return;
+    const ev=field.type==='text'||field.type==='textarea'?'input':'change';
+    node.addEventListener(ev,generateOutputs);
+    const custom=el(field.key+'Custom');if(custom)custom.addEventListener('input',generateOutputs);
+  });
+  el('generateMain').addEventListener('click',generateOutputs);
+  el('variationBtn').addEventListener('click',createVariations);
+  el('randomizeBtn').addEventListener('click',randomizeForm);
+  el('clearBtn').addEventListener('click',clearAll);
+  el('saveBtn').addEventListener('click',savePrompt);
+  el('copyPhotoBtn').addEventListener('click',function(){copyText('photoOutput','flashPhoto');});
+  el('copyPhotoBtn2').addEventListener('click',function(){copyText('photoOutput','flashPhoto2');});
+  el('copyVideoBtn').addEventListener('click',function(){copyText('videoOutput','flashVideo');});
+  el('copyVideoBtn2').addEventListener('click',function(){copyText('videoOutput','flashVideo2');});
+  el('copyVariationsBtn').addEventListener('click',function(){copyText('variationOutput','flashVar');});
+  if (el('copyMarketingBtn')) {
+    el('copyMarketingBtn').addEventListener('click',function(){copyText('marketingOutput','flashMarketing');});
+  }
+  if (el('copySunoBtn')) {
+    el('copySunoBtn').addEventListener('click',function(){copyText('sunoOutput','flashSuno');});
+  }
+  document.querySelectorAll('.suno-chip').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      btn.classList.toggle('active');
+      generateOutputs();
+    });
+  });
+  ['sunoCustomGenre','sunoCustomStyle'].forEach(function(id){
+    if(el(id)) el(id).addEventListener('input',generateOutputs);
+  });
+  ['sunoWeirdness','sunoStyleInfluence','sunoAudioInfluence'].forEach(function(id){
+    if(el(id)) el(id).addEventListener('input',function(){updateSunoRangeLabels();generateOutputs();});
+  });
+}
+
+/* ── SPARKLE CANVAS ── */
+(function(){
+  const canvas=document.getElementById('sparkleCanvas');
+  const ctx=canvas.getContext('2d');
+  const particles=[];
+  const colors=['#a78bfa','#F59E0B','#34d399','#f472b6','#67e8f9','#fff'];
+
+  function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+  resize();
+  window.addEventListener('resize',resize);
+
+  function spawn(){
+    const x=Math.random()*canvas.width;
+    const y=Math.random()*canvas.height;
+    const size=Math.random()*3+1;
+    const color=colors[Math.floor(Math.random()*colors.length)];
+    const speedX=(Math.random()-.5)*1.2;
+    const speedY=-(Math.random()*1.5+.5);
+    const life=Math.random()*120+80;
+    particles.push({x,y,size,color,speedX,speedY,life,maxLife:life,angle:Math.random()*Math.PI*2,spin:(Math.random()-.5)*.15});
+  }
+
+  function drawStar(ctx,x,y,r,a){
+    ctx.save();ctx.translate(x,y);ctx.rotate(a);
+    ctx.beginPath();
+    for(let i=0;i<4;i++){
+      const angle=i*(Math.PI/2);
+      ctx.moveTo(0,0);
+      ctx.lineTo(Math.cos(angle)*r,Math.sin(angle)*r);
+    }
+    ctx.stroke();ctx.restore();
+  }
+
+  let frame=0;
+  function loop(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    frame++;
+    if(frame%18===0)spawn(); // new sparkle every 18 frames
+
+    for(let i=particles.length-1;i>=0;i--){
+      const p=particles[i];
+      const alpha=p.life/p.maxLife;
+      ctx.globalAlpha=alpha*.85;
+      ctx.strokeStyle=p.color;
+      ctx.lineWidth=p.size*.4;
+      drawStar(ctx,p.x,p.y,p.size*2.5,p.angle);
+
+      // also draw a dot
+      ctx.globalAlpha=alpha*.5;
+      ctx.fillStyle=p.color;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.size*.5,0,Math.PI*2);
+      ctx.fill();
+
+      p.x+=p.speedX;p.y+=p.speedY;p.angle+=p.spin;p.life--;
+      if(p.life<=0)particles.splice(i,1);
+    }
+    ctx.globalAlpha=1;
+    requestAnimationFrame(loop);
+  }
+  loop();
+})();
+applyFortyOptionUpgrade();
+buildBuilder();
+buildPresets();
+setValues(defaults);
+onGenderChange();
+addEventHandlers();
+renderHistory();
+createVariations();
+
+const scrollUpBtn = el('scrollUpBtn');
+const scrollDownBtn = el('scrollDownBtn');
+if(scrollUpBtn){scrollUpBtn.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});}
+if(scrollDownBtn){scrollDownBtn.addEventListener('click',function(){window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'});});}
+</script>
+</body>
+</html>
