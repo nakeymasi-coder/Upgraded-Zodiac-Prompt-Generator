@@ -197,9 +197,7 @@
             <span class="announcement-text" aria-hidden="true">✨ Luxury Generator Bundle • Instant Download • Premium Images •</span>
           </div>
         </div>
-        <div class="row" style="margin-top:14px;">
-          <button class="btn" id="randomizeBtn" type="button">Randomizer</button>
-        </div>
+        
       </div>
 
     </div>
@@ -214,7 +212,12 @@
           <h2 style="margin:0;font-size:1.25rem;font-weight:700;">Presets</h2>
           <div class="tiny">Click to apply a styled starting point.</div>
         </div>
+
         <div id="presetGrid" class="grid-presets"></div>
+
+        <div class="row" style="margin-top:16px;">
+          <button class="btn" id="randomizeBtn" type="button">🎲 Randomize Everything</button>
+        </div>
       </section>
 
 
@@ -786,6 +789,30 @@ let malePoses = [
   'Full body centered symmetrical stance, editorial power'
 ];
 
+/* ── BODY TYPE LISTS ── */
+const femaleBodyTypes = [
+  ['slim and lean figure', 'Slim & Lean'],
+  ['soft athletic figure', 'Soft Athletic'],
+  ['athletic and toned figure', 'Athletic & Toned'],
+  ['curvy sculpted figure', 'Curvy Sculpted'],
+  ['curvy and voluptuous figure', 'Curvy & Voluptuous'],
+  ['hourglass sculpted figure', 'Hourglass Sculpted'],
+  ['full-figured bold figure', 'Full-Figured & Bold'],
+  ['plus-size goddess figure', 'Plus-Size Goddess'],
+  ['petite and delicate figure', 'Petite & Delicate'],
+  ['tall and statuesque figure', 'Tall & Statuesque']
+];
+
+const maleBodyTypes = [
+  ['slim and lean build', 'Slim & Lean'],
+  ['athletic and toned build', 'Athletic & Toned'],
+  ['lean and defined build', 'Lean & Defined'],
+  ['muscular and powerful build', 'Muscular & Powerful'],
+  ['broad-shouldered commanding build', 'Broad-Shouldered & Commanding'],
+  ['stocky and strong build', 'Stocky & Strong'],
+  ['tall and statuesque build', 'Tall & Statuesque']
+];
+
 /* ── SIMPLE OPTIONS ── */
 const simpleOptions = {
   zodiac:[['aries','Aries'],['taurus','Taurus'],['gemini','Gemini'],['cancer','Cancer'],['leo','Leo'],['virgo','Virgo'],['libra','Libra'],['scorpio','Scorpio'],['sagittarius','Sagittarius'],['capricorn','Capricorn'],['aquarius','Aquarius'],['pisces','Pisces']],
@@ -1041,7 +1068,7 @@ function applyFortyOptionUpgrade(){
     ],
     symbol: [
       ['angelic-feathered','Angelic Feathered'],['beaded-jewel','Beaded Jewelwork'],['celestial-flame','Celestial Flame'],['chrome-spiked','Chrome Spiked'],
-      ['cosmic-smoke','Cosmic Smoke'],['crown-framed','Crown Framed'],['cut-glass','Cut Glass'],['diamond-outline','Diamond Outline'],
+      ['cosmic-smoke','Cosmic Smoke'],['halo-framed','Halo Framed'],['cut-glass','Cut Glass'],['diamond-outline','Diamond Outline'],
       ['electric-plasma','Electric Plasma'],['floral-vine','Floral Vine'],['gemstone-inlaid','Gemstone Inlaid'],['glossy-resin','Glossy Resin'],
       ['halo-lit','Halo Lit'],['liquid-gold','Liquid Gold'],['moonstone-carved','Moonstone Carved'],['pearl-framed','Pearl Framed'],
       ['shadow-cutout','Shadow Cutout'],['sigil-etched','Sigil Etched'],['solar-radiant','Solar Radiant'],['velvet-embossed','Velvet Embossed']
@@ -1093,12 +1120,11 @@ function applyFortyOptionUpgrade(){
     'Gold Constellations','Heavenly Drapery','Icy Filigree','Laser Star Lines','Liquid Metal Ribbons',
     'Mirror Shards','Moon Petals','Mystic Chains','Obsidian Roses','Opaline Frames'
   ]);
-
   femaleHair.splice(0, femaleHair.length, ...ensureStandaloneArrayCount(femaleHair, [
-    'Angled bob with sleek shine','Beehive glamour updo','Blunt chin-length bob','Braided crown with pearls','Butterfly layered blowout',
-    'Coily high ponytail','Curly shag with volume','Deep side-part waves','Double braided ponytails','Finger-coiled pixie',
-    'Glossy sculpted bun','Half-up braids with curls','Hollywood glam waves','Long mermaid waves','Loose textured lob',
-    'Micro braids waist-length','Pinned victory rolls','Rope twist ponytail','Short curly bob','Silk-pressed layered hair'
+  'Angled bob with sleek shine','Beehive glamour updo','Blunt chin-length bob','Braided crown with pearls','Butterfly layered blowout',
+  'Coily high ponytail','Curly shag with volume','Deep side-part waves','Double braided ponytails','Finger-coiled pixie',
+  'Glossy sculpted bun','Half-up braids with curls','Hollywood glam waves','Long mermaid waves','Loose textured lob',
+  'Micro braids waist-length','Pinned victory rolls','Rope twist ponytail','Short curly bob','Silk-pressed layered hair'
   ]));
   maleHair.splice(0, maleHair.length, ...ensureStandaloneArrayCount(maleHair, [
     'Afro with temple fade','Bleached buzz cut','Braided top knot','Classic side part','Coily frohawk',
@@ -1388,28 +1414,51 @@ function toggleChar(){
 
 /* ── GENDER GATE ── */
 function fillSelect(node,options){
+  if(!node) return;
   node.innerHTML='';
-  options.forEach(function(opt){const o=document.createElement('option');o.value=opt;o.textContent=opt;node.appendChild(o);});
+  options.forEach(function(opt){
+    const o=document.createElement('option');
+    if(Array.isArray(opt)){
+      o.value=opt[0];
+      o.textContent=opt[1];
+    } else {
+      o.value=opt;
+      o.textContent=opt;
+    }
+    node.appendChild(o);
+  });
 }
 
-function onGenderChange(){
-  const gender=el('charGender').value;
-  const hairSel=el('charHair');
-  const poseSel=el('charPose');
-  const mkCard=el('makeupCard');
+function onGenderChange(skipGenerate){
+  const genderNode = el('charGender');
+  const gender = genderNode ? genderNode.value : 'none';
 
-  if(gender==='man'){
-    fillSelect(hairSel,maleHair);
-    fillSelect(poseSel,malePoses);
-    mkCard.classList.add('hidden');
-    el('charMakeup').value='none';
-  
+  const hairSel = el('charHair');
+  const poseSel = el('charPose');
+  const bodySel = el('charBodyType');
+  const mkCard = el('makeupCard');
+  const makeupSel = el('charMakeup');
+
+  if(gender === 'man'){
+    fillSelect(hairSel, maleHair);
+    fillSelect(poseSel, malePoses);
+    fillSelect(bodySel, maleBodyTypes);
+    if(mkCard) mkCard.classList.add('hidden');
+    if(makeupSel) setSelectValues(makeupSel, []);
+  } else if(gender === 'woman'){
+    fillSelect(hairSel, femaleHair);
+    fillSelect(poseSel, femalePoses);
+    fillSelect(bodySel, femaleBodyTypes);
+    if(mkCard) mkCard.classList.remove('hidden');
   } else {
-    fillSelect(hairSel,femaleHair);
-    fillSelect(poseSel,femalePoses);
-    mkCard.classList.remove('hidden');
+    fillSelect(hairSel, ['None']);
+    fillSelect(poseSel, ['None']);
+    fillSelect(bodySel, [['none','None']]);
+    if(mkCard) mkCard.classList.add('hidden');
+    if(makeupSel) setSelectValues(makeupSel, []);
   }
-  generateOutputs();
+
+  if(!skipGenerate) generateOutputs();
 }
 
 /* ── BUILD BUILDER ── */
@@ -1485,34 +1534,48 @@ function customBundleText(){return fields.map(function(f){const v=getCustomText(
 
 /* ── CHARACTER PROMPT LINE ── */
 function buildCharacterLine(zodiac){
-  if(!uiState.charOn)return'';
-  const gender=el('charGender').value;
-  const ethnicity=el('charEthnicity').value;
-  const bodyType=el('charBodyType').value;
-  const age=el('charAge').value;
-  const hair=el('charHair').value;
-  const pose=el('charPose').value;
-  const makeup=(gender!=='man')?el('charMakeup').value:'none';
-  const custom=el('charCustom').value.trim();
+  if(!uiState.charOn) return '';
 
-  // update auto-trait display
-  el('autoEye').textContent=zodiac.eye||'—';
-  el('autoSkin').textContent=zodiac.skin||'—';
-  el('autoVibe').textContent=zodiac.vibe||'—';
-  el('autoEnergy').textContent=zodiac.energy||'—';
+  const gender = el('charGender') ? el('charGender').value : 'none';
+  const ethnicity = el('charEthnicity') ? el('charEthnicity').value : 'none';
+  const bodyType = el('charBodyType') ? el('charBodyType').value : 'none';
+  const age = el('charAge') ? el('charAge').value : 'none';
+  const hair = el('charHair') ? el('charHair').value : 'None';
+  const pose = el('charPose') ? el('charPose').value : 'None';
+  const makeup = gender === 'woman' && el('charMakeup')
+    ? selectedValues(el('charMakeup')).join(', ')
+    : '';
+  const custom = el('charCustom') ? el('charCustom').value.trim() : '';
 
-  const parts=[];
-  if(age&&age!=='none')parts.push(age);
-  if(ethnicity&&ethnicity!=='none')parts.push(ethnicity);
-  if(bodyType&&bodyType!=='none')parts.push(bodyType);
-  if(hair&&hair!=='none')parts.push(hair+' hair');
+  const autoEye = el('autoEye');
+  const autoSkin = el('autoSkin');
+  const autoVibe = el('autoVibe');
+  const autoEnergy = el('autoEnergy');
 
-  let line=parts.length?'Subject: '+parts.join(', ')+'.':'';
-  const autoLine=[zodiac.eye,zodiac.skin,zodiac.vibe,zodiac.energy].filter(Boolean).join(', ');
-  if(autoLine)line+=' Zodiac auto-traits: '+autoLine+'.';
-  if(pose&&pose!=='none')line+=' Pose: '+pose+'.';
-  if(makeup&&makeup!=='none')line+=' Beauty look: '+makeup+'.';
-  if(custom)line+=' Additional character notes: '+custom+'.';
+  if(autoEye) autoEye.textContent = zodiac.eye || '--';
+  if(autoSkin) autoSkin.textContent = zodiac.skin || '--';
+  if(autoVibe) autoVibe.textContent = zodiac.vibe || '--';
+  if(autoEnergy) autoEnergy.textContent = zodiac.energy || '--';
+
+  const parts = [];
+
+  if(gender && gender !== 'none') parts.push(gender);
+  if(age && age !== 'none') parts.push(age);
+  if(ethnicity && ethnicity !== 'none') parts.push(ethnicity);
+  if(bodyType && bodyType !== 'none') parts.push(bodyType);
+  if(hair && hair !== 'None' && hair !== 'none') parts.push(hair);
+
+  let line = parts.length ? 'Subject: ' + parts.join(', ') + '.' : '';
+
+  const autoLine = [zodiac.eye, zodiac.skin, zodiac.vibe, zodiac.energy]
+    .filter(Boolean)
+    .join(', ');
+
+  if(autoLine) line += ' Zodiac auto-traits: ' + autoLine + '.';
+  if(pose && pose !== 'None' && pose !== 'none') line += ' Pose: ' + pose + '.';
+  if(makeup) line += ' Beauty look: ' + makeup + '.';
+  if(custom) line += ' Additional character notes: ' + custom + '.';
+
   return line;
 }
 
@@ -1522,21 +1585,22 @@ function getArtValues(id){
   return Array.from(node.selectedOptions).map(o=>o.value).filter(v=>v&&v!=='none');
 }
 function buildArtDirectionLine(){
-  const style=getArtValues('artStyle');
-  const text=getArtValues('artText');
-  const accents=getArtValues('artAccents');
-  const color=getArtValues('artColor');
-  const bg=getArtValues('artBackground');
-  const finish=getArtValues('artFinish');
-  const parts=[];
-  if(style.length) parts.push('Art style: '+style.join('; ')+'.');
-  if(text.length) parts.push('Text treatment: '+text.join(', ')+'.');
-  if(accents.length) parts.push('Accent elements: '+accents.join(', ')+'.');
-  if(bg.length) parts.push('Background: '+bg.join(', ')+'.');
-  if(finish.length) parts.push('Finish and rendering: '+finish.join(', ')+'.');
-  return parts.length?parts.join(' '):'';
-}
+  const style = getArtValues('artStyle');
+  const text = getArtValues('artText');
+  const accents = getArtValues('artAccents');
+  const bg = getArtValues('artBackground');
+  const finish = getArtValues('artFinish');
 
+  const parts = [];
+
+  if(style.length) parts.push('Art style: ' + style.join('; ') + '.');
+  if(text.length) parts.push('Text treatment: ' + text.join(', ') + '.');
+  if(accents.length) parts.push('Accent elements: ' + accents.join(', ') + '.');
+  if(bg.length) parts.push('Background: ' + bg.join(', ') + '.');
+  if(finish.length) parts.push('Finish and rendering: ' + finish.join(', ') + '.');
+
+  return parts.length ? parts.join(' ') : '';
+}
 /* ── GENERATE ── */
 
 function buildMarketingOutput(state,zodiac,photoPrompt,videoPrompt){
@@ -1800,23 +1864,140 @@ function generateOutputs(){
     el('sunoOutput').value = buildSunoOutput(zodiac);
   }
 }
-
 /* ── RANDOMIZE ── */
-function sample(list,count){const pool=list.slice();const out=[];while(pool.length&&out.length<count){const i=Math.floor(Math.random()*pool.length);out.push(pool.splice(i,1)[0]);}return out;}
+
+function sample(list, count){
+  const clean = (list || []).filter(Boolean);
+  const pool = clean.slice();
+  const out = [];
+
+  while(pool.length && out.length < count){
+    const i = Math.floor(Math.random() * pool.length);
+    out.push(pool.splice(i, 1)[0]);
+  }
+
+  return out;
+}
+
+function getOptionValues(id){
+  const node = el(id);
+  if(!node) return [];
+
+  return Array.from(node.options)
+    .map(o => o.value)
+    .filter(v => v && v !== 'none' && v !== 'None');
+}
+
+function setRandomSingle(id){
+  const node = el(id);
+  const vals = getOptionValues(id);
+  if(node && vals.length) node.value = sample(vals, 1)[0];
+}
+
+function setRandomMulti(id, count){
+  const node = el(id);
+  const vals = getOptionValues(id);
+  if(node && vals.length) setSelectValues(node, sample(vals, count));
+}
+
+function randomCountForField(key){
+  if(['cameraShot','lensType','lightingMode','shadowMode'].includes(key)) return 1;
+  if(key === 'background') return 1;
+  return 2;
+}
 
 function randomizeForm(){
+  // Main Builder — respects locks
   fields.forEach(function(field){
-    if(uiState.locks[field.key])return;
-    const node=el(field.key);if(!node)return;
-    if(field.type==='multiSimple'){const vals=simpleOptions[field.source].map(p=>p[0]).filter(v=>v!=='none');setSelectValues(node,sample(vals,Math.random()>.6?2:1));}
-    else if(field.type==='multi'){const vals=dropdownData[field.key].filter(v=>v!=='None');setSelectValues(node,sample(vals,Math.random()>.6?2:1));}
-    else if(field.type==='single'){const vals=simpleOptions[field.source].map(p=>p[0]);node.value=sample(vals,1)[0];}
-    else if(field.type==='text'){const seeds=['stardust trails, soft bloom, floating sparks','volumetric glow, glitter dust, lens shimmer','mist curls, radiant particles, atmospheric haze'];node.value=sample(seeds,1)[0];}
-    else if(field.type==='textarea'){node.value='';}
-    const custom=el(field.key+'Custom');if(custom&&!uiState.locks[field.key])custom.value='';
+    if(uiState.locks[field.key]) return;
+
+    const node = el(field.key);
+    if(!node) return;
+
+    if(field.type === 'multiSimple'){
+      const vals = simpleOptions[field.source]
+        .map(p => p[0])
+        .filter(v => v !== 'none');
+
+      setSelectValues(node, sample(vals, randomCountForField(field.key)));
+    }
+
+    else if(field.type === 'multi'){
+      const vals = dropdownData[field.key]
+        .filter(v => v !== 'None');
+
+      setSelectValues(node, sample(vals, randomCountForField(field.key)));
+    }
+
+    else if(field.type === 'single'){
+      const vals = simpleOptions[field.source]
+        .map(p => p[0])
+        .filter(v => v !== 'none');
+
+      let next = sample(vals, 1)[0];
+
+      if(field.key === 'zodiac' && vals.length > 1){
+        let safety = 0;
+        while(next === node.value && safety < 25){
+          next = sample(vals, 1)[0];
+          safety++;
+        }
+      }
+
+      node.value = next;
+    }
+
+    else if(field.type === 'text'){
+      const seeds = [
+        'particle shimmer',
+        'cinematic glow',
+        'atmospheric depth',
+        'soft celestial bloom',
+        'luxury stardust haze'
+      ];
+      node.value = sample(seeds, 1)[0];
+    }
+
+    else if(field.type === 'textarea'){
+      node.value = '';
+    }
+
+    const custom = el(field.key + 'Custom');
+    if(custom && !uiState.locks[field.key]) custom.value = '';
   });
+
+  // Art Direction — separate section outside Main Builder
+  setRandomMulti('artText', 2);
+  setRandomMulti('artAccents', 2);
+  setRandomMulti('artBackground', 1);
+  setRandomMulti('artFinish', 2);
+
+  // Character Controls — only if Character Control is ON
+  if(uiState.charOn){
+    const genderNode = el('charGender');
+
+    if(genderNode){
+      genderNode.value = sample(['woman', 'man'], 1)[0];
+      onGenderChange(true);
+    }
+
+    setRandomSingle('charEthnicity');
+    setRandomSingle('charBodyType');
+    setRandomSingle('charAge');
+    setRandomSingle('charHair');
+    setRandomSingle('charPose');
+
+    if(genderNode && genderNode.value === 'woman'){
+      setRandomMulti('charMakeup', 2);
+    } else if(el('charMakeup')){
+      setSelectValues(el('charMakeup'), []);
+    }
+  }
+
+  syncChipUI();
   generateOutputs();
 }
+
 function syncChipUI(){
   document.querySelectorAll('select[multiple]').forEach(function(select){
     const group = select.previousElementSibling;
@@ -1832,6 +2013,7 @@ function syncChipUI(){
     });
   });
 }
+
 /* ── CLEAR / SAVE / HISTORY ── */
 function clearAll(){
   // clear every main builder field directly to none/empty
@@ -1855,7 +2037,7 @@ function clearAll(){
     if(node.options[0])node.options[0].selected=true;
   });
   // clear all character fields to none/empty
-  ['charGender','charEthnicity','charBodyType','charAge',].forEach(function(id){
+  ['charGender','charEthnicity','charBodyType','charAge','charHair','charPose'].forEach(function(id){
     const node=el(id);
     if(node)node.value='none';
   });
@@ -1920,20 +2102,16 @@ function addEventHandlers(){
     node.addEventListener(ev,generateOutputs);
     const custom=el(field.key+'Custom');if(custom)custom.addEventListener('input',generateOutputs);
   });
-  el('generateMain').addEventListener('click',generateOutputs);
+  el('generateMain').addEventListener('click', randomizeForm);
   el('variationBtn').addEventListener('click',createVariations);
   el('randomizeBtn').addEventListener('click',randomizeForm);
   el('clearBtn').addEventListener('click',clearAll);
   el('saveBtn').addEventListener('click',savePrompt);
   el('copyPhotoBtn2').addEventListener('click',function(){copyText('photoOutput','flashPhoto2');});
   el('copyVideoBtn2').addEventListener('click',function(){copyText('videoOutput','flashVideo2');});
-  el('copyVariationsBtn').addEventListener('click',function(){copyText('variationOutput','flashVar');});
-  if (el('copyMarketingBtn')) {
-    el('copyMarketingBtn').addEventListener('click',function(){copyText('marketingOutput','flashMarketing');});
-  }
-  if (el('copySunoBtn')) {
-    el('copySunoBtn').addEventListener('click',function(){copyText('sunoOutput','flashSuno');});
-  }
+  el('copyVariationsBtn').addEventListener('click',function(){copyText('variationOutput','flashVar');});if (el('copyMarketingBtn')) {
+  el('copyMarketingBtn').addEventListener('click',function(){copyText('marketingOutput','flashMarketing');});}if (el('copySunoBtn')) {
+  el('copySunoBtn').addEventListener('click',function(){copyText('sunoOutput','flashSuno');});}
   document.querySelectorAll('.suno-chip').forEach(function(btn){
     btn.addEventListener('click',function(){
       btn.classList.toggle('active');
